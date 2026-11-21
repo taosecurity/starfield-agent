@@ -88,7 +88,7 @@ The **papyrus-ref MCP server** lets the assistant look up Papyrus functions and 
 You need [Claude Code](https://code.claude.com) (written against 2.1.330) and Python 3.9 or newer, because the hooks
 are small Python scripts.
 
-Install Python 3.11 or newer from [python.org](https://www.python.org/downloads/). On the first screen of the
+If you don't have it, install the current Python 3 from [python.org](https://www.python.org/downloads/). On the first screen of the
 installer, tick **Add python.exe to PATH**. To check that it worked, open a new Command Prompt and type
 `python --version`. It should print a version number.
 
@@ -99,7 +99,8 @@ claude plugin marketplace add taosecurity/starfield-modding
 claude plugin install starfield-modding@starfield-modding
 ```
 
-Restart Claude Code, then run `/starfield-modding:setup`. If Python is missing, the guard hooks refuse every call they
+To see what it added, run `claude plugin details starfield-modding@starfield-modding` (it lists the twelve skills,
+the hooks and the MCP server). Restart Claude Code, then run `/starfield-modding:setup`. If Python is missing, the guard hooks refuse every call they
 cover, on purpose, so install Python first.
 
 ## The modding tools

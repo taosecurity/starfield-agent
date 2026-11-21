@@ -170,3 +170,25 @@ Both reviews ran on the whole repo at 08f3809 (0.1.0, unreleased). There is no r
 
 - `python -I -X utf8 selftest.py` with `SFMOD_TEST_PAPYRUS_REF` naming a local sf-papyrus-ref 0.1.0: 103 tests, OK, including the real-server test. `claude plugin validate` passed with only the ICON_MISSING directory note.
 - readme-check `--kind tool`, the private-text grep and the removal of `__pycache__`: see the relay log for this step.
+
+## Haiku agent test (2026-11-20)
+
+One test agent (Claude Haiku) got only a fresh clone at 7ee872a, an empty `CLAUDE_CONFIG_DIR` and the task: follow AGENTS.md to run the selftest, add the clone as a local marketplace, install the plugin, run `claude plugin list`, and list the skills. It was not told the answers.
+
+### What it ran and saw
+
+- `python -I selftest.py` (AGENTS.md 4.2): 103 tests, OK (1 skipped, the real sf-papyrus-ref run), `claude plugin validate` OK with the ICON_MISSING note, `RESULT: OK`, exit 0.
+- With the empty config: `claude plugin marketplace add <clone>` ("Successfully added marketplace: starfield-modding"), `claude plugin install starfield-modding@starfield-modding` (installed, "3 userConfig options not yet set"), `claude plugin list` (version 0.1.0, `Status: ✔ enabled`). All exit 0.
+- Skills: AGENTS.md gave no way to list them. It read the 12 folders under `skills/` and found `claude plugin details starfield-modding@starfield-modding` through `claude plugin --help`: `Skills (12)`, `Hooks (1)  PreToolUse`, `MCP servers (1)  papyrus-ref`. The clone stayed clean (`git status --short` empty).
+
+### What it tripped on, and the fixes (docs only)
+
+1. No command to list the skills. Fixed: AGENTS.md 4.2 now gives `claude plugin details`, with its expected lines, and the `skills/` folders as the fallback; the README install section names it too. Rerun in the empty config: exit 0, the same output.
+2. AGENTS.md says two PreToolUse hooks, `plugin details` says `Hooks (1)`. Both are right: `hooks/hooks.json` has two PreToolUse entries, and `details` counts hook events. AGENTS.md 1.3 now says so.
+3. Unclear whether the selftest uses the default config. It runs `claude plugin validate .`, which reads only the plugin folder. AGENTS.md 4.3 now says so, and that ICON_MISSING is not a failure. (`-X utf8` is not needed: the selftest sets its own output encoding.)
+4. "Restart Claude Code" can't be done headless. AGENTS.md 3.4 now says a new `claude` process loads the plugin and section 4 needs no session; new 3.5 explains `CLAUDE_CONFIG_DIR` for a test install and `--plugin-dir` for a session, since an empty config has no login.
+5. Also found while fixing: README told readers to install "Python 3.11 or newer" while AGENTS.md, the README's own line above and the setup skill say 3.9. The README now says to install the current Python 3. Not tested on 3.9 itself (no 3.9 on this machine); a grep found no 3.10-only syntax.
+
+Not tested by the agent: `--no-claude`, the MCP server, any skill run (they need a session).
+
+These are docs-only changes after 7ee872a, so the code reviews of 7ee872a still cover the code that will be pushed.

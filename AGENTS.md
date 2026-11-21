@@ -6,7 +6,7 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 
 1. starfield-modding is a Claude Code plugin (and its own plugin marketplace) for Starfield mod authors.
 2. It adds twelve skills: `setup`, `new-mod`, `build-mod`, `rebuild-mod`, `evaluate-mod`, `test-plan`, `log-review`, `release-check`, `patch-day`, `logging-rules`, `game-code-rules` and `wrap-up`. They are called as `/starfield-modding:<skill>`, and Claude Code also loads them when a task matches.
-3. It adds two PreToolUse hooks: `guard_game.py` (refuses changes to the game's `Data` folder, the saves folder, `Plugins.txt` and `ContentCatalog.txt`) and `guard_game_code.py` (refuses `git add|commit|push`, `gh release create|upload` and `gh gist create` that would carry Bethesda's files or code).
+3. It adds two PreToolUse hooks (`claude plugin details` counts hook events, so it shows them as `Hooks (1)  PreToolUse`): `guard_game.py` (refuses changes to the game's `Data` folder, the saves folder, `Plugins.txt` and `ContentCatalog.txt`) and `guard_game_code.py` (refuses `git add|commit|push`, `gh release create|upload` and `gh gist create` that would carry Bethesda's files or code).
 4. It registers one MCP server, `papyrus-ref`, which runs sf-papyrus-ref when it is installed and a help-only stub when it is not.
 5. Use it when the user makes, rebuilds, evaluates, tests or releases Starfield mods with Claude Code. Don't use it for other games.
 
@@ -26,12 +26,14 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 
 2. Or inside a Claude Code session: `/plugin marketplace add taosecurity/starfield-modding`, then `/plugin install starfield-modding@starfield-modding`.
 3. From a local clone instead of GitHub: `claude plugin marketplace add <path to the clone>`, then the same install command.
-4. Restart Claude Code so the skills, hooks and MCP server load.
+4. Restart Claude Code so the skills, hooks and MCP server load. A headless or scripted setup has nothing to restart: each new `claude` process loads the plugin, and the checks in section 4 work without a session.
+5. To try the install without touching your own Claude Code settings, set the environment variable `CLAUDE_CONFIG_DIR` to an empty folder first. The `marketplace add`, `install`, `list` and `details` commands work there; a session (`claude -p`) needs a login, which an empty folder doesn't have, so for that use your normal config with `claude --plugin-dir <path to the clone>`.
 
 ## 4. Prove the install
 
 1. Run `claude plugin list`. The output lists `starfield-modding@starfield-modding` with `Status: ✔ enabled`. (`claude plugin install` also says when the three optional options are not set yet; that is normal.)
-2. In the plugin folder (or a clone), run `python -I selftest.py`. The last line is `RESULT: OK` (exit 0). On a machine without Claude Code on PATH, use `python -I selftest.py --no-claude`.
+2. List what the plugin adds: `claude plugin details starfield-modding@starfield-modding`. It prints `Skills (12)` with the twelve names from section 1, `Hooks (1)  PreToolUse` and `MCP servers (1)  papyrus-ref` (exit 0). Without Claude Code, the skills are the folders under `skills/`, one `SKILL.md` each.
+3. In the plugin folder (or a clone), run `python -I selftest.py`. The last line is `RESULT: OK` (exit 0). It ends with `claude plugin validate .`, which reads only the plugin folder, so `CLAUDE_CONFIG_DIR` makes no difference to it. Its `ICON_MISSING` warning concerns only a listing in Anthropic's plugin directory and is not a failure. On a machine without Claude Code on PATH, use `python -I selftest.py --no-claude`.
 
 ## 5. Common tasks
 

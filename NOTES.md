@@ -223,3 +223,9 @@ When the wrap-up is done, rename everything in one pass:
 - Both reviews before the push, as usual.
 
 - Handed off 2026-11-20: the PMTGaps master took the rename on as step R in `PMTGaps\WORKPLAN.md`, after the wrap-up W (PMTGaps commit 0cc60c5).
+
+## Release review (2026-11-20)
+
+- The user kept both guard policies from the relay's "For the review" list: the game-code guard still refuses commits of `.psc` files with official script names, and a project's `.claude/starfield-modding.json` still can't set `papyrus_ref`.
+- Hub card and What's new item live (site 011f2a2); the repo is in `tools\readme-check\repos.json` (all repos pass); DD next steps: build step closed, two follow-ups (watch for issues; one real session with the plugin on and a try of the `/plugin configure` dialog, which no test has covered).
+- The throwaway test folder `D:\Starfield Scratch\PluginCleanTest` was deleted.

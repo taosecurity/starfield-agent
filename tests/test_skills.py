@@ -15,13 +15,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ROOT / "skills"
 
-# All twelve skills from DESIGN.md section 3. The first six are required now; the rest are added in a later step,
-# and REQUIRED grows to the full list then.
+# All twelve skills from DESIGN.md section 3; every one is required.
 ALL_SKILLS = [
     "setup", "new-mod", "build-mod", "rebuild-mod", "evaluate-mod", "test-plan",
     "log-review", "release-check", "patch-day", "logging-rules", "game-code-rules", "wrap-up",
 ]
-REQUIRED = ALL_SKILLS[:6]
+REQUIRED = ALL_SKILLS
 
 MAX_DESCRIPTION = 400
 

@@ -40,7 +40,8 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    | sf-patch-day 0.1.2 | `python -I sf-patch-day.py --version` in its folder | after a game update |
    | sf-log-collector 2.0.1 | `Collect-StarfieldTestLogs.ps1` exists in its folder | gathering test logs |
    | papyrus-log-check 0.3.2 | its `--version` | reading the Papyrus log |
-   | sf-save-health 0.7.0, sf-save-reader 0.1.3 | their `--version` | save checks after a test |
+   | sf-save-health 0.7.0 | `sf-save-health --help` (exit 3 is expected; it has no `--version`, and every report's first line names the version) | save checks after a test |
+   | sf-save-reader 0.1.3 | `sf-save-reader --version` | quest stages in saves |
 
    Also report `dotnet --list-sdks` (sf-mod-build and BuildKit need .NET SDK 9 or later) and `git --version`.
 

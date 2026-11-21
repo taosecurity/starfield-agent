@@ -192,3 +192,21 @@ One test agent (Claude Haiku) got only a fresh clone at 7ee872a, an empty `CLAUD
 Not tested by the agent: `--no-claude`, the MCP server, any skill run (they need a session).
 
 These are docs-only changes after 7ee872a, so the code reviews of 7ee872a still cover the code that will be pushed.
+
+## Release 0.1.0 (2026-11-20)
+
+Released as v0.1.0 at commit 2631dda (the reviewed code of 7ee872a plus docs-only changes). The repo was created public with the MIT license, `main` and the annotated tag `v0.1.0` were pushed, and the release notes are the CHANGELOG's 0.1.0 section. readme-check `--kind tool` passed (0 fails, 0 warnings) both before and after the tag existed.
+
+Install from GitHub, tested right after the release in an empty `CLAUDE_CONFIG_DIR` with Claude Code 2.1.330:
+
+    > claude plugin marketplace add taosecurity/starfield-modding
+    ✔ Successfully added marketplace: starfield-modding (declared in user settings)
+    > claude plugin install starfield-modding@starfield-modding
+    ✔ Successfully installed plugin: starfield-modding@starfield-modding (scope: user)
+    3 userConfig options not yet set — run /plugin configure starfield-modding@starfield-modding in Claude Code, or pass --config KEY=VALUE.
+    > claude plugin details starfield-modding@starfield-modding
+      Skills (12)  build-mod, evaluate-mod, game-code-rules, log-review, logging-rules, new-mod, patch-day, rebuild-mod, release-check, setup, test-plan, wrap-up
+      Hooks (1)  PreToolUse
+      MCP servers (1)  papyrus-ref
+
+All three commands exited 0. Still not tested: the interactive `/plugin configure` dialog.

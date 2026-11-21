@@ -2,7 +2,7 @@
 
 This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 83 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG (0.1.0, unreleased), and the clean install test (`NOTES.md`).
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG (0.1.0, unreleased), and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews").
 - Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
@@ -115,6 +115,7 @@ As built in step 3 (`hooks/guard_game.py`, 41 tests in `tests/test_guard_game.py
 - Guarded by shape, so any Steam library, Game Pass drive, OneDrive Documents or Proton prefix is covered without detection: `.../steamapps/common/Starfield/Data`, `.../XboxGames/Starfield/Content/Data`, `.../My Games/Starfield/Saves`, `.../Packages/BethesdaSoftworks.ProjectGold_*`, and `AppData/Local/Starfield/Plugins.txt` and `ContentCatalog.txt` (the second added in step 3: the game and the mod managers own it too). The settings add `game_dir\Data`, `saves_dir` and each `extra_guarded` folder.
 - A hook input it can't read is refused (fail closed), and the message says how to report it and how to turn the plugin off meanwhile.
 - Known limits: a shell guard reads text, so a path built at run time (a variable assigned in one part and used in the next, a script file the command runs) isn't seen. The skills say this, and the file-tool check has no such gap.
+- Changed after the 0.1.0 code review (NOTES.md, "Reviews"): every word is now resolved against its part's working folder, and the guard follows `cd`, `Set-Location`, `pushd` and `chdir`, so `rm -rf Data` from the game folder and `cd Data && del x` are refused; wildcard words are expanded with `glob` and every match checked; a folder that holds a guarded folder (such as the game folder itself) counts as naming it, so writes to it are refused while reads pass; the rule that only plain commands run inside a guarded working folder now applies whether or not the command also names a guarded path; `uniq` and `ba2-extract extract` left the read-only list; and a part that names a guarded folder and holds PowerShell code (`{ }`, `( )` expressions, `::`, `.Method(`) outside quotes is refused.
 
 ### 4.2 guard_game_code (PreToolUse, matcher `Bash|PowerShell`, only for `git add|commit|push`, `gh release create|upload`, `gh gist create`)
 
@@ -132,6 +133,7 @@ Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_gam
 - What it lists: `git add` through `git add --dry-run` with the same arguments; `git commit` from the index (`git diff --cached`), plus tracked changes for `-a` and named paths; `git push` from every commit the push would send (`git log <revs> --not --remotes`), so a file added and removed again in later commits is still caught; `gh release create|upload` and `gh gist create` from the named files, reading the members of a `.zip`. It follows `cd`, `Set-Location` and `git -C`.
 - False-alarm check (step 3): the checks ran over 11,395 git-tracked `.psc`, `.c`, `.cpp`, `.h` and `.txt` files in 228 local repos of our own and of other authors we follow, with sf-papyrus-ref installed. Our own scripts raised nothing. Seventeen refusals were all edited copies of official scripts in other authors' patch repos (they keep the official name so they replace the game's script), which the rule says never to share. The one "ask" was decompiler pseudocode quoted in a C++ comment. So the by-name checks stay refusals, and only the content test asks.
 - Without sf-papyrus-ref, `.psc` files are checked by the `Scripts/Source/Base` folder only, and the message says the check was weaker.
+- Changed after the 0.1.0 reviews (NOTES.md, "Reviews"): when the files can't be listed (a git error) it now asks instead of passing; a first commit with pathspecs is listed with `git ls-files`; `git push <remote> tag <name>` is read as the tag; push revisions go after `--end-of-options` and remote tips are excluded as `^<sha>`, so a refspec such as `+--output=<file>` can't turn into a `git log` option that writes a file; zips are opened on commit (staged and working copy) and on push (from the commit), not only on `git add` and `gh`; `gh release` and `gh gist` file arguments with wildcards are expanded, and the tag is no longer taken for a file; and sf-papyrus-ref is found with `safe_which` and never from the project's settings file.
 
 ## 5. MCP: sf-papyrus-ref
 
@@ -155,7 +157,7 @@ Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_gam
 
 As built (step 5 of the relay, 2026-11-20):
 
-- The launcher reads the `papyrus_ref` setting through `hooks/sfmod_config.py`'s `load_settings`, so it uses the same order as the hooks: `SF_PAPYRUS_REF`, the plugin option `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF`, the project file, then the user file. A `--papyrus-ref <folder>` argument comes first, and PATH (`sf_papyrus_ref.py`, then the `sf-papyrus-ref` command) comes last. Empty values and unsubstituted `${...}` placeholders are ignored.
+- The launcher reads the `papyrus_ref` setting through `hooks/sfmod_config.py`'s `load_settings`, so it uses the same order as the hooks: `SF_PAPYRUS_REF`, the plugin option `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF`, then the user file (the project file is not trusted for this key; section 6). A `--papyrus-ref <folder>` argument comes first, and PATH (`sf_papyrus_ref.py`, then the `sf-papyrus-ref` command) comes last. Empty values and unsubstituted `${...}` placeholders are ignored.
 - The clean install test (relay step 7, 2026-11-20, Claude Code 2.1.330) showed that Claude Code does not export `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF` to MCP server processes on its own: with the option set, the launcher still served the help-only stub. So `.mcp.json` passes it explicitly, as `"env": {"CLAUDE_PLUGIN_OPTION_PAPYRUS_REF": "${user_config.papyrus_ref}"}`. Tested both ways: with the option set, the real server's four tools appear; with it unset, the server is not skipped and the stub still appears (the launcher ignores the empty or unsubstituted value). Details in `NOTES.md`.
 - `--find` prints what the launcher would start and exits (0 found, 1 not found); `--log <file>` copies its messages, which otherwise go to stderr, to a file.
 - `tests/test_launcher.py` (12 tests): the stub's replies, bad lines and unknown methods, each way of finding the tool with a fake echoing `sf_papyrus_ref.py`, the exit code passed back, and one real run against an installed sf-papyrus-ref (set `SFMOD_TEST_PAPYRUS_REF` or `SF_PAPYRUS_REF`; skipped otherwise).
@@ -179,6 +181,14 @@ The `setup` skill writes file 3 after showing the user what it found. Keys in fi
 Plugin `userConfig` (a manifest field the reference lists) may replace file 3. Step 3 tests whether hooks can read its values; if they can, it is used, and the file stays as the fallback.
 
 Answer (step 3, from the plugins reference read 2026-11-20): yes. Claude Code exports every option to hook processes as `CLAUDE_PLUGIN_OPTION_<KEY>` (key upper-cased), and substitutes `${user_config.KEY}` in MCP server configs and in exec-form hook arguments, but not in shell-form hook commands. So `plugin.json` declares three optional `directory` options, `game_dir`, `saves_dir` and `papyrus_ref`, which Claude Code offers when the plugin is enabled, and `sfmod_config.py` reads `CLAUDE_PLUGIN_OPTION_GAME_DIR`, `..._SAVES_DIR`, `..._PAPYRUS_REF` and `..._EXTRA_GUARDED` right after the `SFMOD_*` variables (an empty value counts as unset). `extra_guarded` and `mod_manager` stay in the settings files, which remain the fallback. `claude plugin validate .` accepts the options. The clean install test (step 6) must confirm that a value set in the dialog reaches the hook.
+
+Changed after the 0.1.0 reviews (see NOTES.md, "Reviews"):
+
+- The project file is never read for `papyrus_ref`: that key names a program the hooks and the MCP server run, and a downloaded project could ship its own settings file and script. The guard notes that it ignored it.
+- The folder keys (`game_dir`, `saves_dir`, `extra_guarded`) are no longer "first found wins": every folder named in any layer is guarded, so a project file can add folders but never remove one the user guards.
+- Unfilled `${...}` placeholders count as unset in every layer, so an unset plugin option doesn't hide the files below it.
+- PATH lookups (`sfmod_config.safe_which`) skip the current folder, relative PATH entries and the project folder, because Windows' `shutil.which` looks in the current folder first.
+- `SFMOD_HOOK_LOG` names a troubleshooting log both guards append to.
 
 ## 7. What stays out, and why
 

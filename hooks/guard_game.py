@@ -30,7 +30,10 @@ READ_ONLY_PLAIN = {
     "get-content": None, "test-path": None, "get-item": None, "gi": None, "get-itemproperty": None,
     "resolve-path": None, "split-path": None, "file": None, "stat": None, "du": None, "tree": None,
     "head": None, "tail": None, "less": None, "more": None, "wc": None, "grep": None, "rg": None,
-    "findstr": None, "select-string": None, "sort": None, "uniq": None, "echo": None, "write-output": None,
+    "findstr": None, "select-string": None, "sort": None, "echo": None, "write-output": None,
+    # moving around (the guard follows these to know each part's working folder)
+    "cd": None, "set-location": None, "sl": None, "pushd": None, "popd": None, "chdir": None, "pwd": None,
+    "get-location": None,
     # hashes
     "sha256sum": None, "sha1sum": None, "md5sum": None, "get-filehash": None,
     # PowerShell filters that only shape output
@@ -45,7 +48,7 @@ READ_ONLY_TOOLS = {
     "sf-load-order": None,
     "sf-patch-day": {"dlls", "drift", "--version", "--help", "-h"},
     "pex-compare": {"compare", "--version", "--help", "-h"},
-    "ba2-extract": {"diff", "list", "extract", "--version", "--help", "-h"},
+    "ba2-extract": {"diff", "list", "--version", "--help", "-h"},
     "sf-papyrus-ref": {"check", "script", "lookup", "list-flag", "--version", "--help", "-h"},
     "papyrus-log-check": None,
     "sf-test-plan": {"logs", "check", "--help", "-h"},
@@ -58,6 +61,11 @@ OUTPUT_OPTIONS = {"--out", "-o", "--output", "--log", "--report", "--state", "--
 WRITERS_PS = re.compile(r"\b(out-file|set-content|add-content|tee-object|new-item|copy-item|move-item|"
                         r"remove-item|rename-item|clear-content)\b", re.I)
 
+# PowerShell script blocks, sub-expressions, static .NET calls and method calls can change files from inside a
+# command that is otherwise on the read-only list (Where-Object { $_.Delete() }). Quoted text is removed first,
+# so "Program Files (x86)" passes (double-quoted $(...) is refused earlier as command substitution).
+CODE_IN_COMMAND = re.compile(r"[{}]|::|\.\w+\s*\(|(^|[\s=,|])\(")
+
 FILE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 
@@ -66,6 +74,7 @@ ADVICE = ("Copy the file in yourself or install it with your mod manager; the ag
 
 
 def refuse(message):
+    cfg.log("data guard", "refused: " + message)
     sys.stderr.write("starfield-modding guard: " + message + "\n" + ADVICE + "\n")
     sys.exit(2)
 
@@ -158,6 +167,9 @@ def part_is_read_only(part, cwd, roots):
     m = WRITERS_PS.search(part)
     if m:
         return f"it uses {m.group(1)}, which changes files"
+    unquoted = re.sub(r"'[^']*'|\"[^\"]*\"", "", part)   # $(...) in double quotes is caught as "subst"
+    if CODE_IN_COMMAND.search(unquoted):
+        return "it runs code inside the command (a { } script block, ( ) expression, :: or .Method() call)"
     ws = words(part)
     name, args = program_and_args(ws)
     if name in READ_ONLY_PLAIN:
@@ -179,23 +191,75 @@ def part_is_read_only(part, cwd, roots):
     return f"'{name or part}' is not on the guard's read-only list"
 
 
-PATHISH = re.compile(r"[\\/:~%$]")
+GLOB_CHARS = re.compile(r"[*?\[]")
+CD_COMMANDS = ("cd", "set-location", "sl", "pushd", "chdir")
+# Folders that hold a guarded folder: deleting or moving one of them changes the guarded folder too.
+PARENT_TAILS = ("/data", "/starfield/data", "/content/data", "/starfield/content/data", "/saves",
+                "/starfield/saves", "/plugins.txt")
+
+
+def parts_with_cwd(command, cwd):
+    """[(part, working folder for that part)], following cd, Set-Location, pushd and chdir."""
+    parts, _ = split_command(command)
+    out, here = [], cwd
+    for part in parts:
+        out.append((part, here))
+        name, args = program_and_args(words(part))
+        targets = [a for a in args if not a.startswith("-")]
+        if name in CD_COMMANDS and targets and here:
+            target = cfg.expand(targets[-1])
+            here = target if os.path.isabs(target) or re.match(r"^[A-Za-z]:", target) else os.path.join(here, target)
+    return out
+
+
+def holds_guarded(normalized, roots):
+    """A label when a normalized path is a folder that holds a guarded folder (a parent up to two levels up)."""
+    if not normalized:
+        return None
+    base = normalized.rstrip("/")
+    for label, rx in cfg.GUARDED_SHAPES:
+        if any(rx.search(base + tail) for tail in PARENT_TAILS):
+            return f"a folder that holds {label}"
+    for label, root in roots:
+        if root.startswith(base + "/") and root[len(base) + 1:].count("/") <= 1:
+            return f"a folder that holds {label}"
+    return None
+
+
+def word_reasons(word, here, roots):
+    """Guarded places one word names: the word as a path (relative words against the part's working folder),
+    every match when it holds a wildcard, and a parent of a guarded folder."""
+    found = []
+    candidates = [cfg.norm_path(word, here)]
+    if GLOB_CHARS.search(word):
+        import glob
+        raw = cfg.expand(word.strip().strip("'\""))
+        if here and not os.path.isabs(raw):
+            raw = os.path.join(here, raw)
+        try:
+            candidates += [cfg.norm_path(m) for m in glob.glob(raw)[:5000]]
+        except (OSError, ValueError, re.error):
+            pass
+    for n in candidates:
+        reason = cfg.guarded_reason(n, roots) or holds_guarded(n, roots)
+        if reason:
+            found.append(reason)
+    return found
 
 
 def named_guarded_paths(command, cwd, roots):
-    """Every guarded place the command names, found two ways: each path-like word normalized (folds '..',
-    env vars, Git Bash drives), and the whole command scanned for the guarded shapes."""
+    """Every guarded place the command names, found two ways: each word normalized against the part's working
+    folder (folds '..', env vars, Git Bash drives, wildcards), and the whole command scanned for the guarded
+    shapes."""
     found = []
-    parts, _ = split_command(command)
-    for part in parts:
+    for part, here in parts_with_cwd(command, cwd):
         for w in words(part):
             # --data=<path> and -Path:<path> carry the path after the = or the colon.
-            pieces = [w] + [m.group(1) for m in re.finditer(r"^-[\w-]+[=:](.+)$", w)]
+            pieces = [m.group(1) for m in re.finditer(r"^-[\w-]+[=:](.+)$", w)]
+            if not w.startswith("-"):
+                pieces.append(w)
             for piece in pieces:
-                if PATHISH.search(piece):
-                    reason = cfg.guarded_reason(cfg.norm_path(piece, cwd), roots)
-                    if reason:
-                        found.append(reason)
+                found.extend(word_reasons(piece, here, roots))
     flat = cfg.expand(command).replace("\\ ", " ").replace("\\", "/").replace("\"", "").replace("'", "")
     flat = re.sub(r"/+", "/", flat).lower()
     for label, rx in cfg.GUARDED_SHAPES:
@@ -222,7 +286,10 @@ def check_shell(command, cwd, roots):
     if not command.strip():
         return
     named = named_guarded_paths(command, cwd, roots)
-    cwd_reason = cfg.guarded_reason(cfg.norm_path(cwd), roots) if cwd else None
+    walked = [(part, here, cfg.guarded_reason(cfg.norm_path(here), roots) if here else None)
+              for part, here in parts_with_cwd(command, cwd)]
+    cwd_reason = next((r for _, _, r in walked if r), None)
+    cfg.log("data guard", f"cwd={cwd} command={command!r} named={named} working-folder={cwd_reason}")
     if not named and not cwd_reason:
         return
     where = ", ".join(named) if named else f"{cwd_reason} (the working folder)"
@@ -230,18 +297,18 @@ def check_shell(command, cwd, roots):
     if "subst" in flags:
         refuse(f"refused a command that names {where} and runs a command inside it ($(...), backticks or <(...)), "
                "which the guard can't check.")
-    for part in parts:
-        why = part_is_read_only(part, cwd, roots)
+    for part, here, _ in walked:
+        why = part_is_read_only(part, here, roots)
         if why:
             refuse(f"refused a command that names {where}: in the part `{part}`, {why}. "
                    "Commands that name these folders may only read them.")
-    if cwd_reason and not named:
-        # Inside a guarded folder, a tool's default output lands there too, so only the plain commands pass.
-        for part in parts:
-            name, _ = program_and_args(words(part))
-            if name not in READ_ONLY_PLAIN:
-                refuse(f"refused `{part}`: the working folder is in {cwd_reason}, and the tool's default output "
-                       "would land there. Run it from your project folder instead.")
+    # Inside a guarded folder, a tool's default output lands there too, so only the plain commands pass,
+    # whether or not the command also names a guarded path.
+    for part, _, reason in walked:
+        name, _ = program_and_args(words(part))
+        if reason and name not in READ_ONLY_PLAIN and name not in CD_COMMANDS:
+            refuse(f"refused `{part}`: the working folder is in {reason}, and the tool's default output "
+                   "would land there. Run it from your project folder instead.")
 
 
 def main():

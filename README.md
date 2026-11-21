@@ -39,12 +39,12 @@ The plugin's own self-test, run from the plugin folder:
 
 ```
 > python -I selftest.py
-...................................................................................
+.......................................................................................................
 ----------------------------------------------------------------------
-Ran 83 tests in 8.146s
+Ran 103 tests in 9.794s
 
 OK
-selftest: 83 tests, OK
+selftest: 103 tests, OK
 Validating marketplace manifest: ...\starfield-modding\.claude-plugin\marketplace.json
 ...
 ✔ Validation passed
@@ -148,9 +148,14 @@ Each setting is read from the first place that has it:
    sf-papyrus-ref folder. They reach the guard hooks and the papyrus-ref MCP server. To set them without the
    dialog, run `claude plugin configure starfield-modding@starfield-modding` to see them, and pipe a JSON object
    such as `{"papyrus_ref": "C:\\Tools\\sf-papyrus-ref-0.1.0"}` into the same command with `--values-stdin`.
-3. The project's `.claude/starfield-modding.json`.
+3. The project's `.claude/starfield-modding.json`. It can't set `papyrus_ref`, because that setting names a program
+   to run and a project you download could ship its own file; the guard ignores it there and says so.
 4. Your own `starfield-modding.json`: `%APPDATA%\starfield-modding\` on Windows, `~/.config/starfield-modding/`
    on Linux and macOS. The `setup` skill writes this file after you agree.
+
+The folder settings (`game_dir`, `saves_dir`, `extra_guarded`) add up instead: every folder named in any of these
+places is guarded, so a project's settings file can add folders but never take one away. An empty option, or one
+still showing a placeholder such as `${user_config.papyrus_ref}`, counts as not set.
 
 The settings file looks like this (leave out what you don't need):
 
@@ -195,6 +200,12 @@ C:\Python313\python.exe -I C:\Tools\sf-papyrus-ref-0.1.0\sf_papyrus_ref.py mcp -
 
 - **A refused call:** the hooks write their reason to Claude Code (stderr), starting with `starfield-modding guard:`.
   The assistant sees it and tells you. Start Claude Code with `claude --debug` to see every hook run.
+- **The guards' log:** set the environment variable `SFMOD_HOOK_LOG` to a file path (for example
+  `C:\Users\<you>\sfmod-hooks.log`) before you start Claude Code. Each hook run then adds lines saying what command
+  it read, which guarded folders it found in it, and what it decided. It is off when the variable is unset.
+- **Linux and macOS:** the hooks and the server run `python`. If your system has only `python3`, install the
+  package that provides `python` (on Ubuntu and Debian, `python-is-python3`) or make a `python` link to `python3`.
+  Without it the hooks can't start.
 - **The MCP server:** run `python -I mcp/papyrus_ref_launcher.py --find` in the plugin folder (Claude Code keeps a copy
   under `~/.claude/plugins/cache/starfield-modding/starfield-modding/<version>`). Add `--log <file>` to copy the launcher's messages to a file. `/mcp` shows whether the
   server is connected.
@@ -203,8 +214,11 @@ C:\Python313\python.exe -I C:\Tools\sf-papyrus-ref-0.1.0\sf_papyrus_ref.py mcp -
 - **Check the plugin itself:** `python -I selftest.py` in the plugin folder runs all tests and
   `claude plugin validate .`; add `--verbose` for each test's name, or `--no-claude` on a machine without Claude Code.
 
-Limits: a shell guard reads the command's text, so a path built while the command runs (a variable set in one part and
-used in the next, or a script file the command runs) isn't seen. Edits through the file tools have no such gap.
+Limits: a shell guard reads the command's text. It follows `cd` and `Set-Location`, resolves relative paths and
+wildcards, and refuses commands that name a guarded folder and run code inside the command (PowerShell `{ }` blocks,
+`(...)` expressions and `.Method()` calls). A path built while the command runs (a variable set in one part and used
+in the next, or a script file the command runs) still isn't seen. Edits through the file tools have no such gap. When
+the game-code guard can't list the files a `git` command would send, it asks you instead of letting it through.
 
 ## Found a mistake?
 

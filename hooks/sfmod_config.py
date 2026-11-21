@@ -5,13 +5,17 @@ Each key is read from the first place that has it:
 1. Environment variables: SFMOD_GAME_DIR, SFMOD_SAVES_DIR, SFMOD_EXTRA_GUARDED (paths separated by ';'),
    SF_PAPYRUS_REF. Then the plugin's own options (Claude Code exports them to hooks as
    CLAUDE_PLUGIN_OPTION_GAME_DIR, CLAUDE_PLUGIN_OPTION_SAVES_DIR, CLAUDE_PLUGIN_OPTION_PAPYRUS_REF).
-2. The project's .claude/starfield-modding.json (the project is CLAUDE_PROJECT_DIR, else the hook's cwd).
+2. The project's .claude/starfield-modding.json (the project is CLAUDE_PROJECT_DIR, else the hook's cwd). It is
+   never trusted for papyrus_ref, which names a program to run (a downloaded project could ship its own file).
 3. The user's starfield-modding.json: %APPDATA%\\starfield-modding\\ on Windows, ~/.config/starfield-modding/ elsewhere
    (SFMOD_USER_CONFIG names another file, which the tests use).
 4. Detection: the guarded folders below match any Steam library, Game Pass install, OneDrive Documents and Proton
    prefix by their shape, so no install has to be found first.
 
 Keys: game_dir, saves_dir, extra_guarded (list), papyrus_ref, mod_manager ({"kind", "path"}).
+The folder keys (game_dir, saves_dir, extra_guarded) are guarded from every layer together, so no layer can take a
+folder away that another guards. Empty values and unfilled ${...} placeholders count as not set.
+SFMOD_HOOK_LOG names a file that both guards append their reads and decisions to (troubleshooting; off by default).
 Standard library only.
 """
 
@@ -74,34 +78,106 @@ def project_dir(cwd=None):
     return os.environ.get("CLAUDE_PROJECT_DIR") or cwd or os.getcwd()
 
 
+# Keys that name a program to run. A cloned project could ship its own settings file, so these are read only from
+# the environment, the plugin's options and the user's own file, never from the project's file.
+UNTRUSTED_IN_PROJECT = ("papyrus_ref",)
+# Keys that add guarded folders. Every layer's values are guarded together (settings["guard_paths"]), so a project
+# file can add folders but never take away a folder the user's file or the environment guards.
+GUARD_KEYS = ("game_dir", "saves_dir", "extra_guarded")
+
+
+def is_unset(value):
+    """Empty values and unfilled placeholders such as ${user_config.papyrus_ref} count as not set."""
+    if value is None:
+        return True
+    if isinstance(value, str):
+        v = value.strip()
+        return not v or v.startswith("${")
+    return value in ([], {})
+
+
 def load_settings(cwd=None):
-    """Return (settings, sources, problems). sources maps each key to where its value came from."""
+    """Return (settings, sources, problems). sources maps each key to where its value came from.
+    settings["guard_paths"] lists (key, path) from every layer, for guarded_roots."""
     problems = []
     project_file = os.path.join(project_dir(cwd), ".claude", "starfield-modding.json")
+    project_label = "project file " + project_file
     layers = [
-        ("project file " + project_file, _read_json(project_file, problems)),
+        (project_label, _read_json(project_file, problems)),
         ("user file " + _user_config_path(), _read_json(_user_config_path(), problems)),
     ]
-    settings, sources = {}, {}
+    for key in UNTRUSTED_IN_PROJECT:
+        if not is_unset(layers[0][1].get(key)):
+            problems.append(f"ignored {key} in {project_file}: it names a program to run, so it is read only from "
+                            "your own settings file, the plugin options or an environment variable")
+    settings, sources, guard_paths = {}, {}, []
+
+    def as_list(key, value):
+        if key == "extra_guarded":
+            items = value.split(";") if isinstance(value, str) else value if isinstance(value, list) else []
+            return [p for p in items if isinstance(p, str) and not is_unset(p)]
+        return [value] if isinstance(value, str) and not is_unset(value) else []
+
     for key in KEYS:
+        found = []
         for env_name in ENV_KEYS.get(key, ()):
-            value = os.environ.get(env_name, "").strip()
-            if value:
-                settings[key] = [p for p in value.split(";") if p.strip()] if key == "extra_guarded" else value
-                sources[key] = "environment variable " + env_name
-                break
-        if key in settings:
-            continue
+            value = os.environ.get(env_name, "")
+            if not is_unset(value):
+                found.append(("environment variable " + env_name, value.strip()))
         for label, data in layers:
-            value = data.get(key)
-            if value in (None, "", []):
+            if label == project_label and key in UNTRUSTED_IN_PROJECT:
                 continue
-            if key == "extra_guarded" and isinstance(value, str):
-                value = [value]
-            settings[key] = value
-            sources[key] = label
-            break
+            value = data.get(key)
+            if not is_unset(value):
+                found.append((label, value))
+        if not found:
+            continue
+        label, value = found[0]
+        settings[key] = as_list(key, value) if key == "extra_guarded" else value
+        sources[key] = label
+        if key in GUARD_KEYS:
+            for _, v in found:
+                guard_paths.extend((key, p) for p in as_list(key, v))
+    settings["guard_paths"] = guard_paths
     return settings, sources, problems
+
+
+def safe_which(names, cwd=None):
+    """Find a program on PATH like shutil.which, but never in the current folder (Windows' shutil.which looks
+    there first), in a relative PATH entry or inside the project, so a cloned repo can't plant one."""
+    blocked = [p for p in (cwd, os.getcwd(), os.environ.get("CLAUDE_PROJECT_DIR")) if p]
+    blocked = [os.path.normcase(os.path.abspath(p)).rstrip("\\/") for p in blocked]
+    exts = [""]
+    if os.name == "nt":
+        exts = [""] + [e for e in (os.environ.get("PATHEXT") or ".COM;.EXE;.BAT;.CMD").split(";") if e]
+    for folder in (os.environ.get("PATH") or "").split(os.pathsep):
+        folder = folder.strip().strip('"')
+        if not folder or not os.path.isabs(folder):
+            continue
+        normal = os.path.normcase(os.path.abspath(folder)).rstrip("\\/")
+        if any(normal == b or normal.startswith(b + os.sep) for b in blocked):
+            continue
+        for name in names:
+            for ext in exts:
+                candidate = os.path.join(folder, name + ext)
+                if os.path.isfile(candidate) and (os.name == "nt" or os.access(candidate, os.X_OK)
+                                                  or candidate.endswith(".py")):
+                    return candidate
+    return None
+
+
+def log(event, detail):
+    """Append one line to the troubleshooting log named by SFMOD_HOOK_LOG (off when unset)."""
+    path = os.environ.get("SFMOD_HOOK_LOG", "").strip()
+    if not path:
+        return
+    try:
+        import datetime
+        stamp = datetime.datetime.now().isoformat(timespec="seconds")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"{stamp} {event}: {detail}\n")
+    except OSError:
+        pass
 
 
 _PS_ENV = re.compile(r"\$env:([A-Za-z_][A-Za-z0-9_]*)", re.I)
@@ -146,16 +222,26 @@ def norm_path(path, cwd=None):
 def guarded_roots(settings, cwd=None):
     """Folders and files guarded because the settings name them: list of (label, normalized path)."""
     roots = []
-    game = settings.get("game_dir")
-    if isinstance(game, str) and game:
-        roots.append(("the game's Data folder (game_dir setting)", norm_path(os.path.join(game, "Data"), cwd)))
-    saves = settings.get("saves_dir")
-    if isinstance(saves, str) and saves:
-        roots.append(("the saves folder (saves_dir setting)", norm_path(saves, cwd)))
-    for extra in settings.get("extra_guarded") or []:
-        if isinstance(extra, str) and extra.strip():
-            roots.append(("a folder in the extra_guarded setting", norm_path(extra, cwd)))
-    return [(label, root) for label, root in roots if root]
+    if "guard_paths" in settings:
+        pairs = settings["guard_paths"]
+    else:
+        pairs = [(k, settings.get(k)) for k in ("game_dir", "saves_dir")]
+        pairs += [("extra_guarded", p) for p in settings.get("extra_guarded") or []]
+    for key, path in pairs:
+        if not isinstance(path, str) or is_unset(path):
+            continue
+        if key == "game_dir":
+            roots.append(("the game's Data folder (game_dir setting)", norm_path(os.path.join(path, "Data"), cwd)))
+        elif key == "saves_dir":
+            roots.append(("the saves folder (saves_dir setting)", norm_path(path, cwd)))
+        else:
+            roots.append(("a folder in the extra_guarded setting", norm_path(path, cwd)))
+    seen, out = set(), []
+    for label, root in roots:
+        if root and root not in seen:
+            seen.add(root)
+            out.append((label, root))
+    return out
 
 
 def guarded_reason(normalized, roots):

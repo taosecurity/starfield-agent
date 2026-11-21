@@ -211,5 +211,72 @@ class Releases(CodeGuardCase):
         self.refused("gh gist create ContentResources.zip")
 
 
+MARKER_TOOL = ("import os, sys\nopen(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RAN'), 'w').close()\n"
+               "sys.exit(1)\n")
+
+
+class ReviewFixes(CodeGuardCase):
+    """Cases found by the 0.1.0 code and security reviews (NOTES.md, "Reviews")."""
+    make_zip = Releases.make_zip
+
+    def test_first_commit_with_pathspec_checked(self):
+        repo = os.path.join(self.tmp.name, "Fresh")
+        os.makedirs(repo)
+        git(repo, "init", "-q", "-b", "main")
+        with open(os.path.join(repo, "Starfield.esm"), "w") as f:
+            f.write("x")
+        git(repo, "add", "Starfield.esm")
+        self.env["CLAUDE_PROJECT_DIR"] = repo
+        self.refused(f'git -C "{repo}" commit -m first Starfield.esm')
+
+    def test_push_tag_keyword_checked(self):
+        self.stage("OldMars.esm")
+        git(self.repo, "commit", "-q", "-m", "oops")
+        git(self.repo, "tag", "v1")
+        self.refused("git push origin tag v1")
+
+    def test_push_option_injection_writes_nothing(self):
+        target = os.path.join(self.tmp.name, "pwned.txt")
+        code, out, err = self.run_guard(f'git push origin "+--output={target}"')
+        self.assertFalse(os.path.exists(target), "git log wrote a file through a refspec")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(out)["hookSpecificOutput"]["permissionDecision"], "ask")
+
+    def test_tracked_zip_checked_on_commit_and_push(self):
+        z = self.make_zip("MyMod-0.1.0.zip", {"MyMod.esm": "x"})
+        git(self.repo, "add", z)
+        git(self.repo, "commit", "-q", "-m", "release zip")
+        self.make_zip(z, {"MyMod.esm": "x", "Starfield - Interface.ba2": "x"})
+        self.refused('git commit -am "rebuild"', contains="Starfield - Interface.ba2")
+        git(self.repo, "commit", "-q", "-am", "rebuild")
+        self.refused("git push origin main", contains="Starfield - Interface.ba2")
+
+    def test_release_wildcard_expanded(self):
+        os.makedirs(os.path.join(self.repo, "dist"))
+        self.make_zip(os.path.join("dist", "MyMod-0.1.0.zip"), {"Starfield.esm": "x"})
+        self.refused("gh release create v0.1.0 dist/*.zip --notes x", contains="Starfield.esm")
+
+    def test_project_settings_cannot_pick_the_program(self):
+        tool = os.path.join(self.repo, "tools")
+        os.makedirs(tool)
+        with open(os.path.join(tool, "sf_papyrus_ref.py"), "w", encoding="utf-8") as f:
+            f.write(MARKER_TOOL)
+        os.makedirs(os.path.join(self.repo, ".claude"))
+        with open(os.path.join(self.repo, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+            json.dump({"papyrus_ref": tool}, f)
+        self.write("Scripts/Source/MyMod_Thing.psc", OWN_SCRIPT)
+        self.run_guard("git add Scripts")
+        self.assertFalse(os.path.exists(os.path.join(tool, "RAN")), "the project's own program was run")
+
+    def test_program_planted_in_project_not_found_on_path(self):
+        with open(os.path.join(self.repo, "sf_papyrus_ref.py"), "w", encoding="utf-8") as f:
+            f.write(MARKER_TOOL)
+        self.env["PATH"] = self.repo + os.pathsep + self.env.get("PATH", "")
+        self.env["PATHEXT"] = os.environ.get("PATHEXT", "") + ";.PY"
+        self.write("Scripts/Source/MyMod_Thing.psc", OWN_SCRIPT)
+        self.run_guard("git add Scripts")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, "RAN")), "a program planted in the project ran")
+
+
 if __name__ == "__main__":
     unittest.main()

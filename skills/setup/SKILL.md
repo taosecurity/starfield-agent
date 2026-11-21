@@ -9,7 +9,7 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
 
 ## Steps
 
-1. **Python.** Run `python --version` (on Linux or macOS also `python3 --version`). The plugin's hooks need Python 3.9 or newer; if it is missing, stop and tell the user to install it from python.org (on Windows, tick "Add python.exe to PATH"), then open a new window. Without Python the guard hooks refuse every tool call they cover, on purpose.
+1. **Python.** Run `python --version`. The hooks and the MCP server call `python` by that name, so on Linux or macOS a system with only `python3` needs the `python-is-python3` package (Ubuntu, Debian) or a `python` link to `python3`; say so if `python3 --version` works but `python --version` doesn't. The plugin's hooks need Python 3.9 or newer; if it is missing, stop and tell the user to install it from python.org (on Windows, tick "Add python.exe to PATH"), then open a new window. Without Python the guard hooks refuse every tool call they cover, on purpose.
 
 2. **The game.** Look in this order and list every copy found:
    - Steam: read `C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf` (each `"path"` entry is a library); the game is `<library>\steamapps\common\Starfield`.
@@ -59,6 +59,6 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    }
    ```
 
-   `game_dir` is the folder holding `Starfield.exe`. `extra_guarded` lists more folders the guard hook protects. `papyrus_ref` is the folder holding `sf_papyrus_ref.py`. `mod_manager.kind` is `mo2`, `vortex` or `none`. Leave out what wasn't found. A project can override any key in its own `.claude/starfield-modding.json`, and environment variables (`SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`) override both.
+   `game_dir` is the folder holding `Starfield.exe`. `extra_guarded` lists more folders the guard hook protects. `papyrus_ref` is the folder holding `sf_papyrus_ref.py`. `mod_manager.kind` is `mo2`, `vortex` or `none`. Leave out what wasn't found. A project's own `.claude/starfield-modding.json` can add guarded folders (folder settings from every place are guarded together) and set `mod_manager`, but it can't set `papyrus_ref`, which is read only from this file, the plugin options or `SF_PAPYRUS_REF`. Environment variables (`SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`) come first for single-value keys.
 
 7. **Report.** One short list: the game copy and its Data folder, the saves folder, the mod manager, the tools found and missing, and where the settings were saved. Say that the guard hook now refuses writes into the Data folder, the saves folder and `Plugins.txt`, and that the user installs mods with their mod manager.

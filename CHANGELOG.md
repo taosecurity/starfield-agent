@@ -17,7 +17,7 @@ Install it inside Claude Code with `/plugin marketplace add taosecurity/starfiel
 
     > python -I selftest.py
     ...
-    selftest: 83 tests, OK
+    selftest: 103 tests, OK
     ✔ Validation passed
     selftest: claude plugin validate OK
     RESULT: OK
@@ -37,4 +37,5 @@ Install it inside Claude Code with `/plugin marketplace add taosecurity/starfiel
 - The Data and saves guard refuses changes to the game's Data folder, the saves folder, `Plugins.txt` and `ContentCatalog.txt`, and lets reading commands and the tools' read-only modes through.
 - The game-code guard refuses commits, pushes, releases and gists that carry official plugins, archives, executables, official script sources, saves or Ghidra and IDA databases, and asks first about files that look like decompiler output.
 - The `papyrus-ref` MCP server runs sf-papyrus-ref 0.1.0 when it is installed, and a help-only stub when it is not.
-- Settings come from environment variables, the plugin's options, a project file or a user file (see the README, "Settings").
+- Settings come from environment variables, the plugin's options, a project file or a user file (see the README, "Settings"). A project file can add guarded folders but can't remove one or choose the program the hooks run.
+- Set `SFMOD_HOOK_LOG` to a file path to get a troubleshooting log of what the guards read and decided.

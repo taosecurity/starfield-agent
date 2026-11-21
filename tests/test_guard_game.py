@@ -202,5 +202,74 @@ class ShellTools(GuardCase):
         self.allowed("Bash", self.bash(r"ls D:\MO2\overwrite"))
 
 
+GAME_ROOT = r"C:\Program Files (x86)\Steam\steamapps\common\Starfield"
+
+
+class ReviewFixes(GuardCase):
+    """Cases found by the 0.1.0 code review (NOTES.md, "Reviews")."""
+
+    def test_relative_data_from_game_root_refused(self):
+        self.refused("Bash", self.bash("rm -rf Data"), cwd=GAME_ROOT)
+        self.refused("PowerShell", self.bash("Remove-Item Data -Recurse"), cwd=GAME_ROOT)
+
+    def test_cd_into_data_then_delete_refused(self):
+        self.refused("Bash", self.bash("cd Data && del Starfield.esm"), cwd=GAME_ROOT)
+        self.refused("PowerShell", self.bash("Set-Location Data; Remove-Item Starfield.esm"), cwd=GAME_ROOT)
+
+    def test_cd_into_data_then_read_allowed(self):
+        self.allowed("Bash", self.bash("cd Data && ls"), cwd=GAME_ROOT)
+
+    def test_parent_of_data_refused_for_writes_only(self):
+        self.refused("Bash", self.bash(f'rm -rf "{GAME_ROOT}"'))
+        self.refused("Bash", self.bash(r'rm -rf "C:\Users\Someone\Documents\My Games\Starfield"'))
+        self.allowed("Bash", self.bash(f'ls "{GAME_ROOT}"'))
+
+    def test_wildcard_into_data_refused(self):
+        data = os.path.join(self.tmp.name, "steamapps", "common", "Starfield", "Data")
+        os.makedirs(data)
+        open(os.path.join(data, "x.esm"), "w").close()
+        pattern = os.path.join(self.tmp.name, "steamapps", "common", "Starfield", "Dat*", "x.esm").replace("\\", "/")
+        self.refused("Bash", self.bash(f'rm "{pattern}"'))
+
+    def test_tool_in_data_cwd_refused_even_when_naming_data(self):
+        self.refused("Bash", self.bash(f'sf-load-order --data "{STEAM_DATA}"'), cwd=STEAM_DATA)
+
+    def test_script_block_refused(self):
+        self.refused("PowerShell", self.bash(
+            f'Get-ChildItem "{STEAM_DATA}" -Filter *.esm | Where-Object {{ $_.Delete() }}'))
+        self.refused("PowerShell", self.bash(f'(Get-Item "{STEAM_DATA}\\x.esm").Delete()'))
+        self.refused("PowerShell", self.bash(f'Get-Content "{STEAM_DATA}\\x.txt" | % {{ [IO.File]::Delete($_) }}'))
+
+    def test_uniq_and_ba2_extract_no_longer_read_only(self):
+        self.refused("Bash", self.bash(f'uniq "{STEAM_DATA}\\a.txt" "{STEAM_DATA}\\b.txt"'))
+        self.refused("Bash", self.bash(f'ba2-extract extract "{STEAM_DATA}\\x.ba2"'))
+
+    def test_project_file_cannot_unguard_user_install(self):
+        with open(self.user_config, "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"G:\Games\Starfield", "extra_guarded": [r"D:\MO2\overwrite"]}, f)
+        os.makedirs(os.path.join(self.tmp.name, ".claude"))
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"C:\nowhere", "extra_guarded": []}, f)
+        self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
+        self.refused("Write", {"file_path": r"D:\MO2\overwrite\x.esp"})
+        self.refused("Write", {"file_path": r"C:\nowhere\Data\x.esm"})
+
+    def test_placeholder_option_does_not_hide_user_file(self):
+        with open(self.user_config, "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"H:\SF"}, f)
+        self.env["CLAUDE_PLUGIN_OPTION_GAME_DIR"] = "${user_config.game_dir}"
+        self.refused("Write", {"file_path": r"H:\SF\Data\x.esm"})
+
+    def test_hook_log(self):
+        log = os.path.join(self.tmp.name, "hook.log")
+        self.env["SFMOD_HOOK_LOG"] = log
+        self.refused("Write", {"file_path": STEAM_DATA + r"\x.esm"})
+        self.allowed("Bash", self.bash(f'ls "{STEAM_DATA}"'))
+        with open(log, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("refused", text)
+        self.assertIn("named=", text)
+
+
 if __name__ == "__main__":
     unittest.main()

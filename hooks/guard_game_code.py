@@ -11,14 +11,17 @@ go up, and then:
   that test is a guess and the user's own file may trip it;
 - lets everything else through (exit 0).
 
-It only reads: `git diff`, `git log`, `git cat-file` and `git add --dry-run`. It never runs the command itself and
-never changes the repo. Standard library only.
+Zips are opened and their members checked, whether they are on disk (git add, gh) or in git (commit, push). When the
+files can't be listed or a zip can't be read, it asks instead of letting the command through.
+
+It only reads: `git diff`, `git log`, `git ls-files`, `git for-each-ref`, `git cat-file` and `git add --dry-run`
+(push revisions go after --end-of-options, so a refspec can't become a git option). It never runs the command
+itself and never changes the repo. Standard library only.
 """
 
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import zipfile
@@ -67,7 +70,7 @@ class Findings:
 class PapyrusNames:
     """Asks sf-papyrus-ref whether a script name is official (`script <name>`: exit 0 found, 1 not found)."""
 
-    def __init__(self, settings):
+    def __init__(self, settings, cwd=None):
         self.cmd = None
         folder = settings.get("papyrus_ref")
         if isinstance(folder, str) and folder:
@@ -75,11 +78,11 @@ class PapyrusNames:
             if os.path.isfile(script):
                 self.cmd = [sys.executable, "-I", script]
         if not self.cmd:
-            found = shutil.which("sf_papyrus_ref.py")
+            found = cfg.safe_which(["sf_papyrus_ref.py"], cwd)
             if found:
                 self.cmd = [sys.executable, "-I", found]
             else:
-                found = shutil.which("sf-papyrus-ref")
+                found = cfg.safe_which(["sf-papyrus-ref"], cwd)
                 if found:
                     self.cmd = [found]
         self.cache, self.lookups, self.missing_used = {}, 0, False
@@ -144,24 +147,30 @@ def wants_content(path):
     return os.path.splitext(path.lower())[1] in TEXT_SUFFIXES
 
 
+def check_zip(source, findings, names, shown, reads):
+    """A zip's members (source is a path or a file object): name checks, then the first lines of text members.
+    A zip that can't be read is asked about, because its members went unchecked."""
+    try:
+        with zipfile.ZipFile(source) as z:
+            for info in z.infolist()[:5000]:
+                member = f"{shown} -> {info.filename}"
+                if check_name(info.filename, findings, names, member) or info.is_dir():
+                    continue
+                if wants_content(info.filename) and reads[0] < MAX_CONTENT_READS:
+                    reads[0] += 1
+                    with z.open(info) as f:
+                        check_head(f.read(HEAD_BYTES), findings, member)
+    except (OSError, zipfile.BadZipFile, RuntimeError, ValueError) as e:
+        findings.add("ask", shown, f"it could not be read as a zip ({e}), so its contents were not checked")
+
+
 def check_local_file(path, findings, names, shown=None, reads=None):
     """A file on disk: name checks, then a zip's members, then the first lines of a text file."""
     shown = shown or path
     if check_name(path, findings, names, shown):
         return
     if path.lower().endswith(".zip") and os.path.isfile(path):
-        try:
-            with zipfile.ZipFile(path) as z:
-                for info in z.infolist()[:5000]:
-                    member = f"{shown} -> {info.filename}"
-                    if check_name(info.filename, findings, names, member) or info.is_dir():
-                        continue
-                    if wants_content(info.filename) and reads[0] < MAX_CONTENT_READS:
-                        reads[0] += 1
-                        with z.open(info) as f:
-                            check_head(f.read(HEAD_BYTES), findings, member)
-        except (OSError, zipfile.BadZipFile) as e:
-            findings.notes.append(f"could not read {shown} as a zip ({e})")
+        check_zip(path, findings, names, shown, reads)
         return
     if wants_content(path) and os.path.isfile(path) and reads[0] < MAX_CONTENT_READS:
         reads[0] += 1
@@ -187,6 +196,22 @@ def git_blob_head(repo, spec):
         return proc.stdout[:HEAD_BYTES] if proc.returncode == 0 else b""
     except (OSError, subprocess.SubprocessError):
         return b""
+
+
+MAX_ZIP_BLOB = 512 * 1024 * 1024
+
+
+def check_git_zip(repo, spec, findings, names, shown, reads):
+    """A zip stored in git (spec such as ':path' or '<commit>:path'): read the blob and check its members."""
+    import io
+    try:
+        size = int(git(repo, "cat-file", "-s", spec).strip() or 0)
+        if size > MAX_ZIP_BLOB:
+            findings.add("ask", shown, f"a {size // (1024 * 1024)} MB zip, too large for the guard to open")
+            return
+        check_zip(io.BytesIO(git(repo, "cat-file", "blob", spec)), findings, names, shown, reads)
+    except (RuntimeError, OSError, subprocess.SubprocessError, ValueError) as e:
+        findings.add("ask", shown, f"the guard could not read this zip from git ({e})")
 
 
 def zsplit(raw):
@@ -231,32 +256,50 @@ def files_git_commit(repo, args):
         files += zsplit(git(repo, "diff", "--name-only", "--diff-filter=ACMRT", "-z"))
     specs = positional(args, COMMIT_VALUE_OPTS)
     if specs:
-        files += zsplit(git(repo, "diff", "HEAD", "--name-only", "--diff-filter=ACMRT", "-z", "--", *specs))
+        try:
+            files += zsplit(git(repo, "diff", "HEAD", "--name-only", "--diff-filter=ACMRT", "-z", "--", *specs))
+        except RuntimeError:
+            # No HEAD yet (the first commit): every tracked file the pathspecs name goes in.
+            files += zsplit(git(repo, "ls-files", "-z", "--", *specs))
     return sorted(set(files))
 
 
 def revs_git_push(args):
+    """(options, revs) for git log: the commits a push would send. Revs that look like options are refused
+    by git log itself, because they come after --end-of-options."""
     if "--delete" in args or "-d" in args:
-        return []
-    revs = []
+        return [], []
+    opts, revs = [], []
     if "--all" in args or "--branches" in args or "--mirror" in args:
-        revs.append("--branches")
+        opts.append("--branches")
     if "--tags" in args or "--follow-tags" in args or "--mirror" in args:
-        revs.append("--tags")
-    for spec in positional(args, PUSH_VALUE_OPTS)[1:]:
+        opts.append("--tags")
+    specs = positional(args, PUSH_VALUE_OPTS)[1:]
+    i = 0
+    while i < len(specs):
+        spec = specs[i]
+        if spec == "tag" and i + 1 < len(specs):       # git push origin tag v1.0
+            revs.append("refs/tags/" + specs[i + 1])
+            i += 2
+            continue
         src = spec.lstrip("+").split(":", 1)[0]
         if src:
             revs.append(src)
-    return revs or ["HEAD"]
+        i += 1
+    if not opts and not revs:
+        revs = ["HEAD"]
+    return opts, revs
 
 
 def commits_git_push(repo, args):
     """(commit, path) for every file added or changed in a commit the push would send."""
-    revs = revs_git_push(args)
-    if not revs:
+    opts, revs = revs_git_push(args)
+    if not opts and not revs:
         return []
-    out = git(repo, "log", "--format=%x01%H", "--name-only", "--diff-filter=ACMRT", "-z", *revs, "--not",
-              "--remotes").decode("utf-8", errors="replace")
+    remote_tips = [line.strip() for line in git(repo, "for-each-ref", "--format=%(objectname)", "refs/remotes")
+                   .decode("utf-8", errors="replace").splitlines() if line.strip()]
+    out = git(repo, "log", "--format=%x01%H", "--name-only", "--diff-filter=ACMRT", "-z", *opts,
+              "--end-of-options", *revs, *("^" + t for t in remote_tips), "--").decode("utf-8", errors="replace")
     pairs, commit = [], None
     for item in out.replace("\n", "\0").split("\0"):
         item = item.strip()
@@ -276,12 +319,27 @@ GH_VALUE_OPTS = {"-R", "--repo", "-t", "--title", "-n", "--notes", "-F", "--note
 
 
 def gh_files(sub, args):
+    """The files a gh release or gist command would upload. args starts with the subcommand words."""
     pos = positional(args, GH_VALUE_OPTS)
     if sub[0] == "release":
-        pos = pos[2:]          # "create|upload" and the tag
+        pos = pos[3:]          # "release", "create|upload" and the tag
     else:
-        pos = pos[1:]          # "create"
+        pos = pos[2:]          # "gist", "create"
     return [p.split("#", 1)[0] for p in pos if p != "-"]
+
+
+GLOB_CHARS = re.compile(r"[*?\[]")
+
+
+def expand_files(name, here):
+    """A file argument as the shell would expand it: a path, or every match of a wildcard."""
+    import glob
+    path = cfg.expand(name)
+    path = path if os.path.isabs(path) else os.path.join(here, path)
+    if GLOB_CHARS.search(name):
+        return [(m, os.path.relpath(m, here) if not os.path.isabs(name) else m)
+                for m in sorted(glob.glob(path))[:5000]]
+    return [(path, name)]
 
 
 # --------------------------------------------------------------------------------------------- main
@@ -304,7 +362,7 @@ def git_global(args):
 
 
 def check_command(command, cwd, settings, findings):
-    names = PapyrusNames(settings)
+    names = PapyrusNames(settings, cwd)
     reads = [0]
     parts, _ = split_command(command)
     here = cwd
@@ -325,25 +383,38 @@ def check_command(command, cwd, settings, findings):
                         check_local_file(os.path.join(repo, f), findings, names, f, reads)
                 elif sub == "commit":
                     for f in files_git_commit(repo, rest):
-                        if not check_name(f, findings, names) and wants_content(f) and reads[0] < MAX_CONTENT_READS:
+                        if check_name(f, findings, names):
+                            continue
+                        if f.lower().endswith(".zip"):
+                            # The staged copy goes in, or the working copy with -a or a pathspec: check both.
+                            check_git_zip(repo, ":" + f, findings, names, f, reads)
+                            on_disk = os.path.join(repo, f)
+                            if os.path.isfile(on_disk):
+                                check_zip(on_disk, findings, names, f + " (working copy)", reads)
+                        elif wants_content(f) and reads[0] < MAX_CONTENT_READS:
                             reads[0] += 1
                             check_head(git_blob_head(repo, ":" + f), findings, f)
                 elif sub == "push":
                     seen = set()
                     for commit, f in commits_git_push(repo, rest):
-                        if check_name(f, findings, names, f"{f} (in commit {commit[:9]})"):
+                        shown = f"{f} (in commit {commit[:9]})"
+                        if check_name(f, findings, names, shown):
                             continue
-                        if f not in seen and wants_content(f) and reads[0] < MAX_CONTENT_READS:
+                        if f.lower().endswith(".zip"):
+                            check_git_zip(repo, f"{commit}:{f}", findings, names, shown, reads)
+                        elif f not in seen and wants_content(f) and reads[0] < MAX_CONTENT_READS:
                             seen.add(f)
                             reads[0] += 1
-                            check_head(git_blob_head(repo, f"{commit}:{f}"), findings, f"{f} (in commit {commit[:9]})")
+                            check_head(git_blob_head(repo, f"{commit}:{f}"), findings, shown)
             except (RuntimeError, OSError, subprocess.SubprocessError) as e:
-                findings.notes.append(f"could not list the files for `git {sub}` ({e}); nothing was checked")
+                # Fail closed: files that can't be listed can't be checked, so the user decides.
+                findings.add("ask", f"git {sub}", f"the guard could not list the files it would send ({e}), so "
+                             "nothing was checked")
         elif name == "gh" and len(args) >= 2 and (args[0], args[1]) in (
                 ("release", "create"), ("release", "upload"), ("gist", "create")):
             for f in gh_files((args[0], args[1]), args):
-                path = f if os.path.isabs(cfg.expand(f)) else os.path.join(here, cfg.expand(f))
-                check_local_file(path, findings, names, f, reads)
+                for path, shown in expand_files(f, here):
+                    check_local_file(path, findings, names, shown, reads)
     if names.missing_used:
         findings.notes.append("sf-papyrus-ref is not installed, so .psc files were checked by folder only")
 
@@ -360,12 +431,17 @@ def main():
         if not RELEVANT.search(command):
             sys.exit(0)
         cwd = data.get("cwd") or os.getcwd()
-        settings, _, _ = cfg.load_settings(cwd)
+        settings, sources, problems = cfg.load_settings(cwd)
+        cfg.log("game-code guard", f"cwd={cwd} command={command!r} papyrus_ref from {sources.get('papyrus_ref')}"
+                + (f" problems={problems}" if problems else ""))
         findings = Findings()
+        findings.notes.extend(problems)
         check_command(command, cwd, settings, findings)
+        cfg.log("game-code guard", f"refused={findings.refused} asked={findings.asked} notes={findings.notes}")
     except SystemExit:
         raise
     except Exception as e:  # fail closed
+        cfg.log("game-code guard", f"error {type(e).__name__}: {e}; refused")
         sys.stderr.write(f"starfield-modding game-code guard: could not check this command ({type(e).__name__}: "
                          f"{e}), so it was refused. Please report it at "
                          "https://github.com/taosecurity/starfield-modding/issues.\n")
@@ -380,8 +456,8 @@ def main():
                          "then try again. Never bypass this check." + notes + "\n")
         sys.exit(2)
     if findings.asked:
-        reason = ("starfield-modding game-code guard: please confirm. These files may be decompiled game code, "
-                  "which must never be shared:\n- " + "\n- ".join(findings.asked[:20])
+        reason = ("starfield-modding game-code guard: please confirm. These files may hold decompiled game code or "
+                  "could not be checked, and game code must never be shared:\n- " + "\n- ".join(findings.asked[:20])
                   + "\nAllow only if you wrote them yourself." + notes)
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
                                                  "permissionDecisionReason": reason}}))

@@ -137,12 +137,31 @@ class PassThroughTests(LauncherCase):
     def test_plugin_option(self):
         self.check_echo(self.env(CLAUDE_PLUGIN_OPTION_PAPYRUS_REF=str(self.fake_tool())))
 
-    def test_project_settings_file(self):
+    def test_project_settings_file_ignored(self):
+        # A cloned project must not choose the program the MCP server runs (security review, 0.1.0).
         folder = self.fake_tool()
         (self.project / ".claude").mkdir()
         (self.project / ".claude" / "starfield-modding.json").write_text(
             json.dumps({"papyrus_ref": str(folder)}), encoding="utf-8")
-        self.check_echo(self.env())
+        code, out, _ = self.run_launcher([], self.env(), args=("--find",))
+        self.assertEqual(code, 1)
+        self.assertEqual(out, ["not found"])
+
+    def test_user_settings_file_used_when_option_is_a_placeholder(self):
+        folder = self.fake_tool()
+        user = self.base / "user.json"
+        user.write_text(json.dumps({"papyrus_ref": str(folder)}), encoding="utf-8")
+        self.check_echo(self.env(SFMOD_USER_CONFIG=str(user),
+                                 CLAUDE_PLUGIN_OPTION_PAPYRUS_REF="${user_config.papyrus_ref}"))
+
+    def test_program_in_project_not_taken_from_path(self):
+        (self.project / "sf_papyrus_ref.py").write_text(FAKE_TOOL, encoding="utf-8")
+        env = self.env()
+        env["PATH"] = str(self.project)
+        env["PATHEXT"] = os.environ.get("PATHEXT", "") + ";.PY"
+        code, out, _ = self.run_launcher([], env, args=("--find",))
+        self.assertEqual(code, 1)
+        self.assertEqual(out, ["not found"])
 
     def test_command_line_wins(self):
         good = self.fake_tool("good")

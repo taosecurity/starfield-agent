@@ -24,7 +24,6 @@ Standard library only.
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
 
@@ -70,11 +69,11 @@ def find_tool(cli_folder=None, cwd=None):
             notes.append(f"found {script} (from {where})")
             return [sys.executable, "-I", script, "mcp", "--quiet"], notes
         notes.append(f"{where} names {folder}, but it holds no sf_papyrus_ref.py")
-    found = shutil.which("sf_papyrus_ref.py")
+    found = cfg.safe_which(["sf_papyrus_ref.py"], cwd)
     if found:
         notes.append(f"found {found} on PATH")
         return [sys.executable, "-I", found, "mcp", "--quiet"], notes
-    found = shutil.which("sf-papyrus-ref")
+    found = cfg.safe_which(["sf-papyrus-ref"], cwd)
     if found:
         notes.append(f"found the sf-papyrus-ref command at {found} on PATH")
         return [found, "mcp", "--quiet"], notes

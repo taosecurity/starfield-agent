@@ -51,7 +51,7 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 
 ## 6. Inputs
 
-1. Settings, first found wins per key: environment variables `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`; then the plugin options (`game_dir`, `saves_dir`, `papyrus_ref`, given to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`, and `papyrus_ref` to the MCP server through `.mcp.json`); then the project's `.claude/starfield-modding.json`; then the user's `%APPDATA%\starfield-modding\starfield-modding.json` (Windows) or `~/.config/starfield-modding/starfield-modding.json`.
+1. Settings, first found wins per key: environment variables `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`; then the plugin options (`game_dir`, `saves_dir`, `papyrus_ref`, given to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`, and `papyrus_ref` to the MCP server through `.mcp.json`); then the project's `.claude/starfield-modding.json` (never `papyrus_ref`, which names a program to run; it is ignored there); then the user's `%APPDATA%\starfield-modding\starfield-modding.json` (Windows) or `~/.config/starfield-modding/starfield-modding.json`. Folder settings (`game_dir`, `saves_dir`, `extra_guarded`) add up across all these places instead, so a project can add guarded folders but never remove one. Empty values and unfilled `${...}` placeholders count as not set.
 2. Settings file keys: `game_dir`, `saves_dir`, `extra_guarded` (list), `papyrus_ref`, `mod_manager` (`{"kind": "mo2" | "vortex" | "none", "path": ...}`). The README's "Settings" section has an example.
 3. Without settings, the guard still covers every Steam library, Game Pass drive, OneDrive Documents and Proton prefix, because it matches the folders by shape.
 4. The hooks read Claude Code's hook JSON on stdin. The launcher speaks MCP over stdin and stdout.
@@ -62,7 +62,7 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 2. A hook input the guard can't read is refused (fails closed), and the message names the issue tracker.
 3. `papyrus_ref_launcher.py --find`: exit 0 found, 1 not found. In normal use it passes the tool's exit code back.
 4. `selftest.py`: exit 0 all passed, 1 a test or the validation failed, 2 Claude Code not found.
-5. Logs: hook and launcher messages go to stderr, which Claude Code shows; `claude --debug` shows every hook run. `papyrus_ref_launcher.py --log <file>` also writes the launcher's messages to a file. `selftest.py --verbose` prints each test's name.
+5. Logs: hook and launcher messages go to stderr, which Claude Code shows; `claude --debug` shows every hook run. `papyrus_ref_launcher.py --log <file>` also writes the launcher's messages to a file. Set the environment variable `SFMOD_HOOK_LOG` to a file path before starting Claude Code to have both guards append what they read and decided (off when unset). `selftest.py --verbose` prints each test's name.
 
 ## 8. Limits
 

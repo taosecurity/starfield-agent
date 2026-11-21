@@ -2,7 +2,8 @@
   "mcpServers": {
     "papyrus-ref": {
       "command": "python",
-      "args": ["-I", "${CLAUDE_PLUGIN_ROOT}/mcp/papyrus_ref_launcher.py"]
+      "args": ["-I", "${CLAUDE_PLUGIN_ROOT}/mcp/papyrus_ref_launcher.py"],
+      "env": {"CLAUDE_PLUGIN_OPTION_PAPYRUS_REF": "${user_config.papyrus_ref}"}
     }
   }
 }

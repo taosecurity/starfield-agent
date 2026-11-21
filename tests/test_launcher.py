@@ -188,5 +188,15 @@ class RealToolTest(LauncherCase):
         self.assertFalse(replies[2]["result"]["isError"], replies[2])
 
 
+class McpConfigTests(unittest.TestCase):
+    def test_mcp_json_passes_the_papyrus_ref_option(self):
+        # Claude Code does not export plugin options to MCP servers by itself (clean install test, NOTES.md),
+        # so .mcp.json must hand the option to the launcher.
+        with open(ROOT / ".mcp.json", encoding="utf-8") as f:
+            server = json.load(f)["mcpServers"]["papyrus-ref"]
+        self.assertEqual(server["env"], {"CLAUDE_PLUGIN_OPTION_PAPYRUS_REF": "${user_config.papyrus_ref}"})
+        self.assertEqual(server["args"][-1], "${CLAUDE_PLUGIN_ROOT}/mcp/papyrus_ref_launcher.py")
+
+
 if __name__ == "__main__":
     unittest.main()

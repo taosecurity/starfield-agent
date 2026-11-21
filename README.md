@@ -39,12 +39,12 @@ The plugin's own self-test, run from the plugin folder:
 
 ```
 > python -I selftest.py
-..................................................................................
+...................................................................................
 ----------------------------------------------------------------------
-Ran 82 tests in 8.274s
+Ran 83 tests in 8.146s
 
 OK
-selftest: 82 tests, OK
+selftest: 83 tests, OK
 Validating marketplace manifest: ...\starfield-modding\.claude-plugin\marketplace.json
 ...
 ✔ Validation passed
@@ -145,8 +145,9 @@ Each setting is read from the first place that has it:
 1. Environment variables: `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED` (folders separated by `;`) and
    `SF_PAPYRUS_REF`.
 2. The plugin's options, which Claude Code offers when you enable the plugin: game folder, saves folder and
-   sf-papyrus-ref folder. They reach the guard hooks. For the papyrus-ref MCP server, name the folder with the
-   settings file or `SF_PAPYRUS_REF`.
+   sf-papyrus-ref folder. They reach the guard hooks and the papyrus-ref MCP server. To set them without the
+   dialog, run `claude plugin configure starfield-modding@starfield-modding` to see them, and pipe a JSON object
+   such as `{"papyrus_ref": "C:\\Tools\\sf-papyrus-ref-0.1.0"}` into the same command with `--values-stdin`.
 3. The project's `.claude/starfield-modding.json`.
 4. Your own `starfield-modding.json`: `%APPDATA%\starfield-modding\` on Windows, `~/.config/starfield-modding/`
    on Linux and macOS. The `setup` skill writes this file after you agree.
@@ -194,8 +195,8 @@ C:\Python313\python.exe -I C:\Tools\sf-papyrus-ref-0.1.0\sf_papyrus_ref.py mcp -
 
 - **A refused call:** the hooks write their reason to Claude Code (stderr), starting with `starfield-modding guard:`.
   The assistant sees it and tells you. Start Claude Code with `claude --debug` to see every hook run.
-- **The MCP server:** run `python -I mcp/papyrus_ref_launcher.py --find` in the plugin folder (Claude Code keeps it
-  under `~/.claude/plugins`). Add `--log <file>` to copy the launcher's messages to a file. `/mcp` shows whether the
+- **The MCP server:** run `python -I mcp/papyrus_ref_launcher.py --find` in the plugin folder (Claude Code keeps a copy
+  under `~/.claude/plugins/cache/starfield-modding/starfield-modding/<version>`). Add `--log <file>` to copy the launcher's messages to a file. `/mcp` shows whether the
   server is connected.
 - **A guard refuses something it shouldn't:** please open an issue with the command. Meanwhile you can run `/plugin`
   and disable starfield-modding.

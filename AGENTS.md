@@ -30,13 +30,13 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 
 ## 4. Prove the install
 
-1. Run `claude plugin list`. The output lists `starfield-modding@starfield-modding` as enabled.
+1. Run `claude plugin list`. The output lists `starfield-modding@starfield-modding` with `Status: ✔ enabled`. (`claude plugin install` also says when the three optional options are not set yet; that is normal.)
 2. In the plugin folder (or a clone), run `python -I selftest.py`. The last line is `RESULT: OK` (exit 0). On a machine without Claude Code on PATH, use `python -I selftest.py --no-claude`.
 
 ## 5. Common tasks
 
 1. First use: run the `setup` skill (`/starfield-modding:setup`). It finds the game, saves and mod manager, shows them to the user, and with the user's OK writes the settings file (section 6).
-2. Name the sf-papyrus-ref folder for the MCP server: set `papyrus_ref` in the settings file, or the environment variable `SF_PAPYRUS_REF`, to the folder holding `sf_papyrus_ref.py`. Then check it:
+2. Name the sf-papyrus-ref folder for the MCP server: set the plugin option `papyrus_ref`, `papyrus_ref` in the settings file, or the environment variable `SF_PAPYRUS_REF`, to the folder holding `sf_papyrus_ref.py`. To set the option without a dialog, pipe JSON into `claude plugin configure starfield-modding@starfield-modding --values-stdin`, for example `{"papyrus_ref": "C:\\Tools\\sf-papyrus-ref-0.1.0"}` (it prints `Configuration saved.`); `claude plugin configure starfield-modding@starfield-modding` alone shows which options are set. Restart Claude Code afterward. Then check the folder:
 
        python -I mcp/papyrus_ref_launcher.py --find
 
@@ -51,7 +51,7 @@ Instructions for an AI assistant that installs or uses this plugin. Plain number
 
 ## 6. Inputs
 
-1. Settings, first found wins per key: environment variables `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`; then the plugin options (`game_dir`, `saves_dir`, `papyrus_ref`, given to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`); then the project's `.claude/starfield-modding.json`; then the user's `%APPDATA%\starfield-modding\starfield-modding.json` (Windows) or `~/.config/starfield-modding/starfield-modding.json`.
+1. Settings, first found wins per key: environment variables `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`; then the plugin options (`game_dir`, `saves_dir`, `papyrus_ref`, given to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`, and `papyrus_ref` to the MCP server through `.mcp.json`); then the project's `.claude/starfield-modding.json`; then the user's `%APPDATA%\starfield-modding\starfield-modding.json` (Windows) or `~/.config/starfield-modding/starfield-modding.json`.
 2. Settings file keys: `game_dir`, `saves_dir`, `extra_guarded` (list), `papyrus_ref`, `mod_manager` (`{"kind": "mo2" | "vortex" | "none", "path": ...}`). The README's "Settings" section has an example.
 3. Without settings, the guard still covers every Steam library, Game Pass drive, OneDrive Documents and Proton prefix, because it matches the folders by shape.
 4. The hooks read Claude Code's hook JSON on stdin. The launcher speaks MCP over stdin and stdout.

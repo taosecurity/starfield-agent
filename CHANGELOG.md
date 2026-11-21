@@ -17,7 +17,7 @@ Install it inside Claude Code with `/plugin marketplace add taosecurity/starfiel
 
     > python -I selftest.py
     ...
-    selftest: 82 tests, OK
+    selftest: 83 tests, OK
     ✔ Validation passed
     selftest: claude plugin validate OK
     RESULT: OK

@@ -2,7 +2,7 @@
 
 This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 82 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG (0.1.0, unreleased).
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 83 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG (0.1.0, unreleased), and the clean install test (`NOTES.md`).
 - Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
@@ -156,7 +156,7 @@ Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_gam
 As built (step 5 of the relay, 2026-11-20):
 
 - The launcher reads the `papyrus_ref` setting through `hooks/sfmod_config.py`'s `load_settings`, so it uses the same order as the hooks: `SF_PAPYRUS_REF`, the plugin option `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF`, the project file, then the user file. A `--papyrus-ref <folder>` argument comes first, and PATH (`sf_papyrus_ref.py`, then the `sf-papyrus-ref` command) comes last. Empty values and unsubstituted `${...}` placeholders are ignored.
-- `.mcp.json` does not pass `${user_config.papyrus_ref}`. Claude Code 2.1.330 has messages for an MCP config with missing configuration ("has missing required configuration, skipping MCP config", `user_config_missing`), and the option is optional, so passing it might hide the server from everyone who leaves it empty (not tested yet). The clean install test (step 6) checks whether `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF` reaches MCP server processes; if it doesn't, the option is documented as hooks-only for the MCP server and the settings file or `SF_PAPYRUS_REF` is the way to name the folder.
+- The clean install test (relay step 7, 2026-11-20, Claude Code 2.1.330) showed that Claude Code does not export `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF` to MCP server processes on its own: with the option set, the launcher still served the help-only stub. So `.mcp.json` passes it explicitly, as `"env": {"CLAUDE_PLUGIN_OPTION_PAPYRUS_REF": "${user_config.papyrus_ref}"}`. Tested both ways: with the option set, the real server's four tools appear; with it unset, the server is not skipped and the stub still appears (the launcher ignores the empty or unsubstituted value). Details in `NOTES.md`.
 - `--find` prints what the launcher would start and exits (0 found, 1 not found); `--log <file>` copies its messages, which otherwise go to stderr, to a file.
 - `tests/test_launcher.py` (12 tests): the stub's replies, bad lines and unknown methods, each way of finding the tool with a fake echoing `sf_papyrus_ref.py`, the exit code passed back, and one real run against an installed sf-papyrus-ref (set `SFMOD_TEST_PAPYRUS_REF` or `SF_PAPYRUS_REF`; skipped otherwise).
 

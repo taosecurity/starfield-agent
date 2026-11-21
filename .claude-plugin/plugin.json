@@ -1,0 +1,13 @@
+{
+  "name": "starfield-modding",
+  "version": "0.1.0",
+  "description": "Skills and guard hooks for Starfield mod authors: set up, start, build, rebuild, evaluate and test mods with free public tools, and keep the agent out of the game's Data and saves folders.",
+  "author": {
+    "name": "Richard Bejtlich",
+    "url": "https://github.com/taosecurity"
+  },
+  "homepage": "https://github.com/taosecurity/starfield-modding",
+  "repository": "https://github.com/taosecurity/starfield-modding",
+  "license": "MIT",
+  "keywords": ["starfield", "modding", "papyrus", "creation-kit", "mutagen", "bethesda"]
+}

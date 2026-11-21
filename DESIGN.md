@@ -2,7 +2,7 @@
 
 This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Nothing is built yet.
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, six skills (setup, new-mod, build-mod, rebuild-mod, evaluate-mod, test-plan), `tests/test_skills.py` and `selftest.py`.
 - Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
@@ -147,7 +147,7 @@ Settings are read in this order, the first one found wins for each key:
 3. The user's `starfield-modding.json` in `%APPDATA%\starfield-modding\` on Windows or `~/.config/starfield-modding/` elsewhere.
 4. Detected defaults: every Steam library listed in `steamapps\libraryfolders.vdf`, Game Pass `<drive>:\XboxGames\Starfield\Content`, Documents (with the OneDrive move read from the registry's Known Folders), and the mod manager found by the `setup` skill.
 
-The `setup` skill writes file 3 after showing the user what it found. Mod managers:
+The `setup` skill writes file 3 after showing the user what it found. Keys in files 2 and 3 (fixed in step 2a): `game_dir` (the folder holding `Starfield.exe`), `saves_dir`, `extra_guarded` (a list of folders), `papyrus_ref` (the folder holding `sf_papyrus_ref.py`) and `mod_manager` (`{"kind": "mo2" | "vortex" | "none", "path": ...}`). Mod managers:
 
 - MO2: the agent builds into the project folder, and MO2's mod folder for the mod is set as the output only if the user asks. MO2's virtual `Data` means the real `Data` stays clean; the guard still covers it.
 - Vortex: the user drops the zip on Vortex. Vortex's staging folder can be added to the guarded list.

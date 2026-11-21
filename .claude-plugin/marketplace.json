@@ -1,0 +1,20 @@
+{
+  "name": "starfield-modding",
+  "owner": {
+    "name": "Richard Bejtlich",
+    "url": "https://github.com/taosecurity"
+  },
+  "metadata": {
+    "description": "A Claude Code plugin for Starfield mod authors."
+  },
+  "plugins": [
+    {
+      "name": "starfield-modding",
+      "source": "./",
+      "description": "Skills and guard hooks for Starfield mod authors: set up, start, build, rebuild, evaluate and test mods with free public tools, and keep the agent out of the game's Data and saves folders.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["starfield", "modding", "papyrus"]
+    }
+  ]
+}

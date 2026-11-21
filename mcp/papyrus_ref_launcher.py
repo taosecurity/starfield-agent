@@ -1,4 +1,4 @@
-"""Start sf-papyrus-ref's MCP server for the starfield-modding plugin, or a help-only server when it is missing.
+"""Start sf-papyrus-ref's MCP server for the starfield-agent plugin, or a help-only server when it is missing.
 
 Claude Code starts this file from the plugin's .mcp.json. It looks for sf-papyrus-ref in this order and uses the
 first one found:
@@ -6,7 +6,7 @@ first one found:
 1. --papyrus-ref <folder> on the command line.
 2. The papyrus_ref setting, read the same way the hooks read it (hooks/sfmod_config.py): the SF_PAPYRUS_REF
    environment variable, the plugin option (CLAUDE_PLUGIN_OPTION_PAPYRUS_REF), the project's
-   .claude/starfield-modding.json, then the user's starfield-modding.json.
+   .claude/starfield-agent.json, then the user's starfield-agent.json.
 3. sf_papyrus_ref.py, or the sf-papyrus-ref command, on PATH.
 
 Found: it runs `python -I <folder>/sf_papyrus_ref.py mcp --quiet` with stdin and stdout passed straight through and
@@ -99,10 +99,10 @@ def help_text(notes):
         "To add them:",
         f"1. Download the sf-papyrus-ref release zip from {DOWNLOAD} and unzip it to a folder of your choice.",
         "2. Name that folder in one of these places (the first one found wins):",
-        "   - the plugin's 'sf-papyrus-ref folder' option (/plugin, then starfield-modding, then configure);",
+        "   - the plugin's 'sf-papyrus-ref folder' option (/plugin, then starfield-agent, then configure);",
         "   - the SF_PAPYRUS_REF environment variable;",
-        "   - \"papyrus_ref\" in the project's .claude/starfield-modding.json or in the user's "
-        "starfield-modding.json (the setup skill writes this file).",
+        "   - \"papyrus_ref\" in the project's .claude/starfield-agent.json or in the user's "
+        "starfield-agent.json (the setup skill writes this file).",
         "   Or put the folder on PATH.",
         "3. Restart Claude Code (or run /mcp and reconnect papyrus-ref).",
         "",

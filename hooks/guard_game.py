@@ -1,4 +1,4 @@
-"""starfield-modding guard: keep the agent from changing the game's Data folder, the saves and Plugins.txt.
+"""starfield-agent guard: keep the agent from changing the game's Data folder, the saves and Plugins.txt.
 
 A Claude Code PreToolUse hook (DESIGN.md section 4.1). It reads the tool call as JSON on stdin and exits 2 with a
 reason on stderr to refuse it, or 0 to let the normal permission rules decide.
@@ -70,12 +70,12 @@ FILE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 SHELL_TOOLS = {"Bash", "PowerShell"}
 
 ADVICE = ("Copy the file in yourself or install it with your mod manager; the agent only reads these folders. "
-          "To guard more folders or point at a moved install, see the starfield-modding README, \"Settings\".")
+          "To guard more folders or point at a moved install, see the starfield-agent README, \"Settings\".")
 
 
 def refuse(message):
     cfg.log("data guard", "refused: " + message)
-    sys.stderr.write("starfield-modding guard: " + message + "\n" + ADVICE + "\n")
+    sys.stderr.write("starfield-agent guard: " + message + "\n" + ADVICE + "\n")
     sys.exit(2)
 
 
@@ -326,10 +326,10 @@ def main():
     except SystemExit:
         raise
     except Exception as e:  # fail closed: a guard that can't read the call refuses it
-        sys.stderr.write(f"starfield-modding guard: could not check this call ({type(e).__name__}: {e}), so it "
-                         "was refused. Please report this at https://github.com/taosecurity/starfield-modding/issues "
+        sys.stderr.write(f"starfield-agent guard: could not check this call ({type(e).__name__}: {e}), so it "
+                         "was refused. Please report this at https://github.com/taosecurity/starfield-agent/issues "
                          "with the command; to work without the guard meanwhile, run /plugin and disable "
-                         "starfield-modding.\n")
+                         "starfield-agent.\n")
         sys.exit(2)
     sys.exit(0)
 

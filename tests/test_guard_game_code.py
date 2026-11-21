@@ -262,7 +262,7 @@ class ReviewFixes(CodeGuardCase):
         with open(os.path.join(tool, "sf_papyrus_ref.py"), "w", encoding="utf-8") as f:
             f.write(MARKER_TOOL)
         os.makedirs(os.path.join(self.repo, ".claude"))
-        with open(os.path.join(self.repo, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.repo, ".claude", "starfield-agent.json"), "w", encoding="utf-8") as f:
             json.dump({"papyrus_ref": tool}, f)
         self.write("Scripts/Source/MyMod_Thing.psc", OWN_SCRIPT)
         self.run_guard("git add Scripts")

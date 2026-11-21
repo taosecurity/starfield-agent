@@ -1,14 +1,16 @@
-"""Shared settings and path helpers for the starfield-modding hooks (DESIGN.md section 6).
+"""Shared settings and path helpers for the starfield-agent hooks (DESIGN.md section 6).
 
 Each key is read from the first place that has it:
 
 1. Environment variables: SFMOD_GAME_DIR, SFMOD_SAVES_DIR, SFMOD_EXTRA_GUARDED (paths separated by ';'),
    SF_PAPYRUS_REF. Then the plugin's own options (Claude Code exports them to hooks as
    CLAUDE_PLUGIN_OPTION_GAME_DIR, CLAUDE_PLUGIN_OPTION_SAVES_DIR, CLAUDE_PLUGIN_OPTION_PAPYRUS_REF).
-2. The project's .claude/starfield-modding.json (the project is CLAUDE_PROJECT_DIR, else the hook's cwd). It is
+2. The project's .claude/starfield-agent.json (the project is CLAUDE_PROJECT_DIR, else the hook's cwd). It is
    never trusted for papyrus_ref, which names a program to run (a downloaded project could ship its own file).
-3. The user's starfield-modding.json: %APPDATA%\\starfield-modding\\ on Windows, ~/.config/starfield-modding/ elsewhere
+3. The user's starfield-agent.json: %APPDATA%\\starfield-agent\\ on Windows, ~/.config/starfield-agent/ elsewhere
    (SFMOD_USER_CONFIG names another file, which the tests use).
+   Until 0.2.0 the plugin was called starfield-modding: when a starfield-agent.json file is missing, the old
+   starfield-modding.json in the same place is read instead, with the same rules.
 4. Detection: the guarded folders below match any Steam library, Game Pass install, OneDrive Documents and Proton
    prefix by their shape, so no install has to be found first.
 
@@ -49,14 +51,31 @@ GUARDED_SHAPES = [
 ]
 
 
+NAME = "starfield-agent"
+OLD_NAME = "starfield-modding"   # the plugin's name before 0.2.0; its settings files are still read
+
+
+def _with_fallback(new_path, old_path):
+    """The new settings file when it exists, else the 0.1.0 file when that exists, else the new path."""
+    if not os.path.exists(new_path) and os.path.exists(old_path):
+        return old_path
+    return new_path
+
+
 def _user_config_path():
     override = os.environ.get("SFMOD_USER_CONFIG")
     if override:
         return override
     if os.name == "nt":
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
-        return os.path.join(base, "starfield-modding", "starfield-modding.json")
-    return os.path.join(os.path.expanduser("~"), ".config", "starfield-modding", "starfield-modding.json")
+    else:
+        base = os.path.join(os.path.expanduser("~"), ".config")
+    return _with_fallback(os.path.join(base, NAME, NAME + ".json"), os.path.join(base, OLD_NAME, OLD_NAME + ".json"))
+
+
+def project_config_path(cwd=None):
+    folder = os.path.join(project_dir(cwd), ".claude")
+    return _with_fallback(os.path.join(folder, NAME + ".json"), os.path.join(folder, OLD_NAME + ".json"))
 
 
 def _read_json(path, problems):
@@ -100,7 +119,7 @@ def load_settings(cwd=None):
     """Return (settings, sources, problems). sources maps each key to where its value came from.
     settings["guard_paths"] lists (key, path) from every layer, for guarded_roots."""
     problems = []
-    project_file = os.path.join(project_dir(cwd), ".claude", "starfield-modding.json")
+    project_file = project_config_path(cwd)
     project_label = "project file " + project_file
     layers = [
         (project_label, _read_json(project_file, problems)),

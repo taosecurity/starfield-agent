@@ -141,7 +141,7 @@ class PassThroughTests(LauncherCase):
         # A cloned project must not choose the program the MCP server runs (security review, 0.1.0).
         folder = self.fake_tool()
         (self.project / ".claude").mkdir()
-        (self.project / ".claude" / "starfield-modding.json").write_text(
+        (self.project / ".claude" / "starfield-agent.json").write_text(
             json.dumps({"papyrus_ref": str(folder)}), encoding="utf-8")
         code, out, _ = self.run_launcher([], self.env(), args=("--find",))
         self.assertEqual(code, 1)

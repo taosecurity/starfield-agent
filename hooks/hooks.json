@@ -1,5 +1,5 @@
 {
-  "description": "starfield-modding guards: keep the agent from changing the game's Data folder, saves and Plugins.txt, and keep Bethesda's files and code out of commits, pushes, releases and gists.",
+  "description": "starfield-agent guards: keep the agent from changing the game's Data folder, saves and Plugins.txt, and keep Bethesda's files and code out of commits, pushes, releases and gists.",
   "hooks": {
     "PreToolUse": [
       {

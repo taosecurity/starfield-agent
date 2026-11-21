@@ -1,4 +1,4 @@
-"""starfield-modding game-code guard: keep Bethesda's files and code out of commits, pushes, releases and gists.
+"""starfield-agent game-code guard: keep Bethesda's files and code out of commits, pushes, releases and gists.
 
 A Claude Code PreToolUse hook (DESIGN.md section 4.2) for Bash and PowerShell. It acts only on `git add`,
 `git commit`, `git push`, `gh release create`, `gh release upload` and `gh gist create`, lists the files that would
@@ -442,21 +442,21 @@ def main():
         raise
     except Exception as e:  # fail closed
         cfg.log("game-code guard", f"error {type(e).__name__}: {e}; refused")
-        sys.stderr.write(f"starfield-modding game-code guard: could not check this command ({type(e).__name__}: "
+        sys.stderr.write(f"starfield-agent game-code guard: could not check this command ({type(e).__name__}: "
                          f"{e}), so it was refused. Please report it at "
-                         "https://github.com/taosecurity/starfield-modding/issues.\n")
+                         "https://github.com/taosecurity/starfield-agent/issues.\n")
         sys.exit(2)
 
     notes = ("\nNotes: " + "; ".join(findings.notes)) if findings.notes else ""
     if findings.refused:
-        sys.stderr.write("starfield-modding game-code guard: refused, because this would share Bethesda's files "
+        sys.stderr.write("starfield-agent game-code guard: refused, because this would share Bethesda's files "
                          "or code:\n- " + "\n- ".join(findings.refused[:20])
                          + ("\n- ..." if len(findings.refused) > 20 else "")
                          + "\nTake these out (git rm --cached, .gitignore, or leave them out of the release), "
                          "then try again. Never bypass this check." + notes + "\n")
         sys.exit(2)
     if findings.asked:
-        reason = ("starfield-modding game-code guard: please confirm. These files may hold decompiled game code or "
+        reason = ("starfield-agent game-code guard: please confirm. These files may hold decompiled game code or "
                   "could not be checked, and game code must never be shared:\n- " + "\n- ".join(findings.asked[:20])
                   + "\nAllow only if you wrote them yourself." + notes)
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",

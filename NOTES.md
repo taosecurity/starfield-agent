@@ -223,6 +223,7 @@ When the wrap-up is done, rename everything in one pass:
 - Both reviews before the push, as usual.
 
 - Handed off 2026-11-20: the PMTGaps master took the rename on as step R in `PMTGaps\WORKPLAN.md`, after the wrap-up W (PMTGaps commit 0cc60c5).
+- Done in 0.2.0 (2026-11-21): every name in the plugin, docs, hooks and tests says starfield-agent. CHANGELOG 0.1.0 and the history in these notes keep the old name. The hooks and the MCP launcher read `starfield-agent.json` first and fall back to the old `starfield-modding.json` in the same place (project and user file), so 0.1.0 settings keep working; 5 new tests. 108 tests pass, `claude plugin validate` OK, readme-check OK.
 
 ## Release review (2026-11-20)
 

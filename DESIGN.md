@@ -1,9 +1,9 @@
-# starfield-modding: design
+# starfield-agent: design
 
-This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
+This is the design of `starfield-agent`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
 - Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG, and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews"). Version 0.1.0 was released on 2026-11-20.
-- Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
+- Target: version 0.1.0, MIT license. Renamed from starfield-modding to starfield-agent in 0.2.0 (2026-11-21); repo `taosecurity/starfield-agent`. The settings files fall back to the old `starfield-modding.json` names (section 6).
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
 ## 1. What a modder gets
@@ -18,21 +18,21 @@ After two commands, a modder using Claude Code has:
 Install, as the README will show it:
 
 ```
-claude plugin marketplace add taosecurity/starfield-modding
-claude plugin install starfield-modding@starfield-modding
+claude plugin marketplace add taosecurity/starfield-agent
+claude plugin install starfield-agent@starfield-agent
 ```
 
-Inside a session the same is `/plugin marketplace add taosecurity/starfield-modding`, then `/plugin install starfield-modding@starfield-modding`. Skills are then called as `/starfield-modding:<skill>`, and the agent also loads them by itself when a task matches.
+Inside a session the same is `/plugin marketplace add taosecurity/starfield-agent`, then `/plugin install starfield-agent@starfield-agent`. Skills are then called as `/starfield-agent:<skill>`, and the agent also loads them by itself when a task matches.
 
 ## 2. Folder layout
 
 The repo root is both the marketplace and the plugin (marketplace entry `"source": "./"`), the same shape Universal Modder and BGS Modding Superpowers use.
 
 ```
-starfield-modding/
+starfield-agent/
   .claude-plugin/
     plugin.json            name, version, description, author, homepage, repository, license, keywords
-    marketplace.json       name "starfield-modding", owner, one plugin entry with source "./"
+    marketplace.json       name "starfield-agent", owner, one plugin entry with source "./"
   skills/
     setup/SKILL.md
     new-mod/SKILL.md
@@ -151,7 +151,7 @@ Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_gam
 ```
 
 1. The launcher finds the tool from the `papyrus_ref` setting (section 6), then the `SF_PAPYRUS_REF` environment variable (the folder), then `sf_papyrus_ref.py` on `PATH`.
-2. Found: it runs `python -I <folder>/sf_papyrus_ref.py mcp --quiet` (the command in the tool's `AGENTS.md`) and passes stdin and stdout through. The four read-only tools appear as `mcp__plugin_starfield-modding_papyrus-ref__papyrus_lookup` and so on.
+2. Found: it runs `python -I <folder>/sf_papyrus_ref.py mcp --quiet` (the command in the tool's `AGENTS.md`) and passes stdin and stdout through. The four read-only tools appear as `mcp__plugin_starfield-agent_papyrus-ref__papyrus_lookup` and so on.
 3. Not found: it serves a minimal MCP server with one tool, `papyrus_setup_help`, which returns the download link and the setting to fill. That way a modder without the tool sees no failed server at every start, and the agent learns how to fix it.
 4. The launcher makes no network connections.
 
@@ -169,8 +169,8 @@ Future idea, out of scope for 0.1.0 (confirmed at step 5): `sf-plugin-mcp`, a re
 Settings are read in this order, the first one found wins for each key:
 
 1. Environment variables: `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED` (paths separated by `;`), `SF_PAPYRUS_REF`.
-2. The project's `.claude/starfield-modding.json`.
-3. The user's `starfield-modding.json` in `%APPDATA%\starfield-modding\` on Windows or `~/.config/starfield-modding/` elsewhere.
+2. The project's `.claude/starfield-agent.json`.
+3. The user's `starfield-agent.json` in `%APPDATA%\starfield-agent\` on Windows or `~/.config/starfield-agent/` elsewhere.
 4. Detected defaults: every Steam library listed in `steamapps\libraryfolders.vdf`, Game Pass `<drive>:\XboxGames\Starfield\Content`, Documents (with the OneDrive move read from the registry's Known Folders), and the mod manager found by the `setup` skill.
 
 The `setup` skill writes file 3 after showing the user what it found. Keys in files 2 and 3 (fixed in step 2a): `game_dir` (the folder holding `Starfield.exe`), `saves_dir`, `extra_guarded` (a list of folders), `papyrus_ref` (the folder holding `sf_papyrus_ref.py`) and `mod_manager` (`{"kind": "mo2" | "vortex" | "none", "path": ...}`). Mod managers:
@@ -210,7 +210,7 @@ Every skill and hook gets a test, added in the step that adds it.
    - `tests/test_guard_game.py`: JSON on stdin for each case, exit 2 or 0 expected: writes into Steam and Game Pass `Data`, saves, OneDrive saves and `Plugins.txt` refused; `sf-mod-check check --data <Data>` and `dir <Data>` allowed; `dir <Data> > out.txt`, `copy x <Data>` and `ls <Data>; rm <Data>\x.esm` refused; mixed slashes, case and `..` handled; a settings file adds a folder;
    - `tests/test_guard_game_code.py`: a temporary git repo with a staged `Starfield.esm`, an official `.psc` name, a `.gpr`, a decompiler banner, and the modder's own `.psc`; the first four refused, the last allowed;
    - `tests/test_launcher.py`: the stub answers `initialize` and `tools/list` with `papyrus_setup_help`; with a fake `sf_papyrus_ref.py` that echoes, the launcher passes messages through.
-2. Clean install test (step 6): a fresh `CLAUDE_CONFIG_DIR` in an empty scratch folder; `claude plugin marketplace add <local repo>`, `claude plugin install starfield-modding@starfield-modding`, `claude plugin list`, then a headless `claude -p` asked to list its skills, and a hook check (a refused write into a fake `Data` folder named by the settings). Results go in `NOTES.md`.
+2. Clean install test (step 6): a fresh `CLAUDE_CONFIG_DIR` in an empty scratch folder; `claude plugin marketplace add <local repo>`, `claude plugin install starfield-agent@starfield-agent`, `claude plugin list`, then a headless `claude -p` asked to list its skills, and a hook check (a refused write into a fake `Data` folder named by the settings). Results go in `NOTES.md`.
 3. Haiku agent test (step 8): one agent given only `AGENTS.md` and a clean copy of the repo installs the plugin into a fresh config folder and lists its skills.
 4. `readme-check` exits 0 (closest kind: `tool`).
 

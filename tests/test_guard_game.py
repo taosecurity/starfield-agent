@@ -46,7 +46,7 @@ class GuardCase(unittest.TestCase):
     def refused(self, tool, tool_input, cwd=PROJECT):
         code, err = self.run_guard(tool, tool_input, cwd)
         self.assertEqual(code, 2, f"expected a refusal for {tool} {tool_input}; stderr: {err}")
-        self.assertIn("starfield-modding guard", err)
+        self.assertIn("starfield-agent guard", err)
         return err
 
     def allowed(self, tool, tool_input, cwd=PROJECT):
@@ -107,9 +107,25 @@ class FileTools(GuardCase):
 
     def test_project_settings_moved_install(self):
         os.makedirs(os.path.join(self.tmp.name, ".claude"))
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-agent.json"), "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"G:\Games\Starfield"}, f)
+        self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
+
+    def test_old_project_settings_file_still_read(self):
+        # 0.1.0 called the plugin starfield-modding; its project file is read when the new one is missing.
+        os.makedirs(os.path.join(self.tmp.name, ".claude"))
         with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"G:\Games\Starfield"}, f)
         self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
+
+    def test_new_project_settings_file_wins_over_old(self):
+        os.makedirs(os.path.join(self.tmp.name, ".claude"))
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"G:\Games\Starfield"}, f)
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-agent.json"), "w", encoding="utf-8") as f:
+            json.dump({"game_dir": r"K:\Other\Starfield"}, f)
+        self.refused("Write", {"file_path": r"K:\Other\Starfield\Data\x.esm"})
+        self.allowed("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
 
     def test_env_var_saves_dir(self):
         self.env["SFMOD_SAVES_DIR"] = r"F:\Backup\Saves"
@@ -123,6 +139,51 @@ class FileTools(GuardCase):
         proc = subprocess.run([sys.executable, "-I", str(GUARD)], input=b"not json", capture_output=True,
                               env=self.env, timeout=30)
         self.assertEqual(proc.returncode, 2)
+
+
+class UserFileName(unittest.TestCase):
+    """The user's settings file: starfield-agent.json, else the 0.1.0 starfield-modding.json in the same place."""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "hooks"))
+        import sfmod_config
+        self.cfg = sfmod_config
+        self.tmp = tempfile.TemporaryDirectory()
+        self.saved = {k: os.environ.get(k) for k in ("SFMOD_USER_CONFIG", "APPDATA", "HOME", "USERPROFILE")}
+        os.environ.pop("SFMOD_USER_CONFIG", None)
+        os.environ["APPDATA"] = self.tmp.name
+        os.environ["HOME"] = os.environ["USERPROFILE"] = self.tmp.name
+        self.base = self.tmp.name if os.name == "nt" else os.path.join(self.tmp.name, ".config")
+
+    def tearDown(self):
+        for k, v in self.saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        sys.path.remove(str(ROOT / "hooks"))
+        self.tmp.cleanup()
+
+    def write(self, name):
+        folder = os.path.join(self.base, name)
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, name + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("{}")
+        return path
+
+    def test_new_name_when_nothing_exists(self):
+        self.assertEqual(self.cfg._user_config_path(),
+                         os.path.join(self.base, "starfield-agent", "starfield-agent.json"))
+
+    def test_old_file_read_when_new_is_missing(self):
+        old = self.write("starfield-modding")
+        self.assertEqual(self.cfg._user_config_path(), old)
+
+    def test_new_file_wins(self):
+        self.write("starfield-modding")
+        new = self.write("starfield-agent")
+        self.assertEqual(self.cfg._user_config_path(), new)
 
 
 class ShellTools(GuardCase):
@@ -248,7 +309,7 @@ class ReviewFixes(GuardCase):
         with open(self.user_config, "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"G:\Games\Starfield", "extra_guarded": [r"D:\MO2\overwrite"]}, f)
         os.makedirs(os.path.join(self.tmp.name, ".claude"))
-        with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-agent.json"), "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"C:\nowhere", "extra_guarded": []}, f)
         self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
         self.refused("Write", {"file_path": r"D:\MO2\overwrite\x.esp"})

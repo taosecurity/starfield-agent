@@ -46,8 +46,8 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    Also report `dotnet --list-sdks` (sf-mod-build and BuildKit need .NET SDK 9 or later) and `git --version`.
 
 6. **Save the settings.** Show the user what was found, then, with their OK, write the settings file:
-   - Windows: `%APPDATA%\starfield-modding\starfield-modding.json`
-   - Linux or macOS: `~/.config/starfield-modding/starfield-modding.json`
+   - Windows: `%APPDATA%\starfield-agent\starfield-agent.json`
+   - Linux or macOS: `~/.config/starfield-agent/starfield-agent.json`
 
    ```json
    {
@@ -59,6 +59,6 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    }
    ```
 
-   `game_dir` is the folder holding `Starfield.exe`. `extra_guarded` lists more folders the guard hook protects. `papyrus_ref` is the folder holding `sf_papyrus_ref.py`. `mod_manager.kind` is `mo2`, `vortex` or `none`. Leave out what wasn't found. A project's own `.claude/starfield-modding.json` can add guarded folders (folder settings from every place are guarded together) and set `mod_manager`, but it can't set `papyrus_ref`, which is read only from this file, the plugin options or `SF_PAPYRUS_REF`. Environment variables (`SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`) come first for single-value keys.
+   `game_dir` is the folder holding `Starfield.exe`. `extra_guarded` lists more folders the guard hook protects. `papyrus_ref` is the folder holding `sf_papyrus_ref.py`. `mod_manager.kind` is `mo2`, `vortex` or `none`. Leave out what wasn't found. A project's own `.claude/starfield-agent.json` can add guarded folders (folder settings from every place are guarded together) and set `mod_manager`, but it can't set `papyrus_ref`, which is read only from this file, the plugin options or `SF_PAPYRUS_REF`. Environment variables (`SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED`, `SF_PAPYRUS_REF`) come first for single-value keys.
 
 7. **Report.** One short list: the game copy and its Data folder, the saves folder, the mod manager, the tools found and missing, and where the settings were saved. Say that the guard hook now refuses writes into the Data folder, the saves folder and `Plugins.txt`, and that the user installs mods with their mod manager.

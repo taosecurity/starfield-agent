@@ -1,5 +1,5 @@
 {
-  "name": "starfield-modding",
+  "name": "starfield-agent",
   "owner": {
     "name": "Richard Bejtlich",
     "url": "https://github.com/taosecurity"
@@ -9,10 +9,10 @@
   },
   "plugins": [
     {
-      "name": "starfield-modding",
+      "name": "starfield-agent",
       "source": "./",
       "description": "Skills and guard hooks for Starfield mod authors: set up, start, build, rebuild, evaluate and test mods with free public tools, and keep the agent out of the game's Data and saves folders.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "license": "MIT",
       "keywords": ["starfield", "modding", "papyrus"]
     }

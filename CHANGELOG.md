@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0 (unreleased)
+
+### What's new
+
+The plugin is now called starfield-agent. The skills, the hooks and the Papyrus lookup server work as before; only the names change.
+
+- Install it with `/plugin marketplace add taosecurity/starfield-agent`, then `/plugin install starfield-agent@starfield-agent`.
+- The skills are now `/starfield-agent:setup`, `/starfield-agent:build-mod` and so on.
+- The MCP tools are now `mcp__plugin_starfield-agent_papyrus-ref__papyrus_lookup` and so on.
+- The settings files are now `.claude/starfield-agent.json` in a project and `starfield-agent.json` in your own settings folder.
+
+### Upgrading from starfield-modding 0.1.0
+
+- Remove the old plugin with `/plugin uninstall starfield-modding@starfield-modding`, then install starfield-agent.
+- The GitHub repository moved to https://github.com/taosecurity/starfield-agent, and the old address forwards there.
+- Your settings keep working: when a `starfield-agent.json` file is missing, the plugin reads the old `starfield-modding.json` in the same place, with the same rules (a project's file still can't set `papyrus_ref`).
+
+### Example
+
+The guard's refusal now names the new plugin:
+
+    starfield-agent guard: refused to change C:/Program Files (x86)/Steam/steamapps/common/Starfield/Data/MyMod.esm, because it is in the game's Data folder (Steam).
+
 ## 0.1.0 (2026-11-20)
 
 ### What's new

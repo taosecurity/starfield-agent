@@ -1,6 +1,6 @@
-# starfield-modding
+# starfield-agent
 
-starfield-modding is a Claude Code plugin that teaches your AI assistant how to make Starfield mods the careful way.
+starfield-agent is a Claude Code plugin that teaches your AI assistant how to make Starfield mods the careful way.
 It adds twelve skills (start, build, rebuild, evaluate, test and release a mod), two guard hooks that keep the
 assistant out of your game's `Data` and saves folders and keep Bethesda's files out of your commits, and a Papyrus
 lookup server, all built on free public modding tools.
@@ -8,17 +8,22 @@ lookup server, all built on free public modding tools.
 Install it from inside Claude Code with these two commands:
 
 ```
-/plugin marketplace add taosecurity/starfield-modding
-/plugin install starfield-modding@starfield-modding
+/plugin marketplace add taosecurity/starfield-agent
+/plugin install starfield-agent@starfield-agent
 ```
 
 Then run the first-use skill, which finds your game, your saves and your mod manager and checks which tools you have:
 
 ```
-/starfield-modding:setup
+/starfield-agent:setup
 ```
 
 For AI assistants: step-by-step instructions are in [AGENTS.md](AGENTS.md).
+
+Until version 0.2.0 this plugin was called starfield-modding. If you installed it under that name, remove it with
+`/plugin uninstall starfield-modding@starfield-modding` and install starfield-agent with the commands above. Your
+settings files keep working: when a `starfield-agent.json` file is missing, the plugin reads the old
+`starfield-modding.json` in the same place.
 
 ## Example
 
@@ -27,8 +32,8 @@ The guard hook refuses a write into the game's `Data` folder, and lets a read-on
 
 ```
 > python -I hooks/guard_game.py < write-into-data.json
-starfield-modding guard: refused to change C:/Program Files (x86)/Steam/steamapps/common/Starfield/Data/MyMod.esm, because it is in the game's Data folder (Steam).
-Copy the file in yourself or install it with your mod manager; the agent only reads these folders. To guard more folders or point at a moved install, see the starfield-modding README, "Settings".
+starfield-agent guard: refused to change C:/Program Files (x86)/Steam/steamapps/common/Starfield/Data/MyMod.esm, because it is in the game's Data folder (Steam).
+Copy the file in yourself or install it with your mod manager; the agent only reads these folders. To guard more folders or point at a moved install, see the starfield-agent README, "Settings".
 exit 2
 
 > python -I hooks/guard_game.py < sf-mod-check-on-data.json
@@ -45,7 +50,7 @@ Ran 103 tests in 9.794s
 
 OK
 selftest: 103 tests, OK
-Validating marketplace manifest: ...\starfield-modding\.claude-plugin\marketplace.json
+Validating marketplace manifest: ...\starfield-agent\.claude-plugin\marketplace.json
 ...
 ✔ Validation passed
 selftest: claude plugin validate OK
@@ -69,7 +74,7 @@ RESULT: OK
 | `game-code-rules` | Before any commit, release or post that carries code. What may and may never be shared. |
 | `wrap-up` | End of a session. Updates `NOTES.md` and commits finished work. |
 
-Call a skill by name, such as `/starfield-modding:build-mod`, or just ask ("build my mod"); the assistant loads the
+Call a skill by name, such as `/starfield-agent:build-mod`, or just ask ("build my mod"); the assistant loads the
 matching skill by itself.
 
 Two hooks run before every file edit and shell command:
@@ -95,12 +100,12 @@ installer, tick **Add python.exe to PATH**. To check that it worked, open a new 
 Then, inside Claude Code, run the two `/plugin` commands at the top of this page. From a terminal the same is:
 
 ```
-claude plugin marketplace add taosecurity/starfield-modding
-claude plugin install starfield-modding@starfield-modding
+claude plugin marketplace add taosecurity/starfield-agent
+claude plugin install starfield-agent@starfield-agent
 ```
 
-To see what it added, run `claude plugin details starfield-modding@starfield-modding` (it lists the twelve skills,
-the hooks and the MCP server). Restart Claude Code, then run `/starfield-modding:setup`. If Python is missing, the guard hooks refuse every call they
+To see what it added, run `claude plugin details starfield-agent@starfield-agent` (it lists the twelve skills,
+the hooks and the MCP server). Restart Claude Code, then run `/starfield-agent:setup`. If Python is missing, the guard hooks refuse every call they
 cover, on purpose, so install Python first.
 
 ## The modding tools
@@ -122,7 +127,7 @@ ones are missing and how to get each one. Versions are the ones the skills were 
 ## Words used here
 
 - **Plugin:** a mod's data file (`.esm`, `.esp` or `.esl`). It adds or changes records in the game. (Claude Code
-  also calls its add-ons "plugins"; this README says "the plugin" for starfield-modding itself.)
+  also calls its add-ons "plugins"; this README says "the plugin" for starfield-agent itself.)
 - **Load order:** the order the game loads plugins in. When two plugins change the same record, the one loaded later wins.
 - **Papyrus:** Starfield's scripting language. Scripts are written as `.psc` source files and compiled into `.pex`
   files that the game runs.
@@ -147,12 +152,13 @@ Each setting is read from the first place that has it:
    `SF_PAPYRUS_REF`.
 2. The plugin's options, which Claude Code offers when you enable the plugin: game folder, saves folder and
    sf-papyrus-ref folder. They reach the guard hooks and the papyrus-ref MCP server. To set them without the
-   dialog, run `claude plugin configure starfield-modding@starfield-modding` to see them, and pipe a JSON object
+   dialog, run `claude plugin configure starfield-agent@starfield-agent` to see them, and pipe a JSON object
    such as `{"papyrus_ref": "C:\\Tools\\sf-papyrus-ref-0.1.0"}` into the same command with `--values-stdin`.
-3. The project's `.claude/starfield-modding.json`. It can't set `papyrus_ref`, because that setting names a program
+3. The project's `.claude/starfield-agent.json`. It can't set `papyrus_ref`, because that setting names a program
    to run and a project you download could ship its own file; the guard ignores it there and says so.
-4. Your own `starfield-modding.json`: `%APPDATA%\starfield-modding\` on Windows, `~/.config/starfield-modding/`
-   on Linux and macOS. The `setup` skill writes this file after you agree.
+4. Your own `starfield-agent.json`: `%APPDATA%\starfield-agent\` on Windows, `~/.config/starfield-agent/`
+   on Linux and macOS. The `setup` skill writes this file after you agree. When either file is missing, the old
+   `starfield-modding.json` in the same place (the name before 0.2.0) is read instead.
 
 The folder settings (`game_dir`, `saves_dir`, `extra_guarded`) add up instead: every folder named in any of these
 places is guarded, so a project's settings file can add folders but never take one away. An empty option, or one
@@ -199,7 +205,7 @@ C:\Python313\python.exe -I C:\Tools\sf-papyrus-ref-0.1.0\sf_papyrus_ref.py mcp -
 
 ## Troubleshooting
 
-- **A refused call:** the hooks write their reason to Claude Code (stderr), starting with `starfield-modding guard:`.
+- **A refused call:** the hooks write their reason to Claude Code (stderr), starting with `starfield-agent guard:`.
   The assistant sees it and tells you. Start Claude Code with `claude --debug` to see every hook run.
 - **The guards' log:** set the environment variable `SFMOD_HOOK_LOG` to a file path (for example
   `C:\Users\<you>\sfmod-hooks.log`) before you start Claude Code. Each hook run then adds lines saying what command
@@ -208,10 +214,10 @@ C:\Python313\python.exe -I C:\Tools\sf-papyrus-ref-0.1.0\sf_papyrus_ref.py mcp -
   package that provides `python` (on Ubuntu and Debian, `python-is-python3`) or make a `python` link to `python3`.
   Without it the hooks can't start.
 - **The MCP server:** run `python -I mcp/papyrus_ref_launcher.py --find` in the plugin folder (Claude Code keeps a copy
-  under `~/.claude/plugins/cache/starfield-modding/starfield-modding/<version>`). Add `--log <file>` to copy the launcher's messages to a file. `/mcp` shows whether the
+  under `~/.claude/plugins/cache/starfield-agent/starfield-agent/<version>`). Add `--log <file>` to copy the launcher's messages to a file. `/mcp` shows whether the
   server is connected.
 - **A guard refuses something it shouldn't:** please open an issue with the command. Meanwhile you can run `/plugin`
-  and disable starfield-modding.
+  and disable starfield-agent.
 - **Check the plugin itself:** `python -I selftest.py` in the plugin folder runs all tests and
   `claude plugin validate .`; add `--verbose` for each test's name, or `--no-claude` on a machine without Claude Code.
 
@@ -223,7 +229,7 @@ the game-code guard can't list the files a `git` command would send, it asks you
 
 ## Found a mistake?
 
-Open an issue: https://github.com/taosecurity/starfield-modding/issues
+Open an issue: https://github.com/taosecurity/starfield-agent/issues
 
 ## Credits
 

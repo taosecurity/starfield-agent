@@ -1,4 +1,4 @@
-"""Run every test of the starfield-modding plugin, then `claude plugin validate .`.
+"""Run every test of the starfield-agent plugin, then `claude plugin validate .`.
 
 The tests are every tests/test_*.py: test_skills.py (the skills), test_guard_game.py (the Data and saves guard)
 test_guard_game_code.py (the game-code guard; needs git on PATH) and test_launcher.py (the MCP launcher; its real

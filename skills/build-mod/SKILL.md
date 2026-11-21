@@ -18,7 +18,7 @@ From source to a zip the user installs with their mod manager. The order matters
    - text the player must see is a Message record shown with `Show()`, not `Debug.Notification` or `Debug.MessageBox`;
    - no vanilla record edits unless the design needs them;
    - the plugin name is `<ModName>.esm` and doesn't end in an official plugin's name (`-ShatteredSpace.esm`, `-Constellation.esm`, `-Starfield.esm`, `-OldMars.esm`, `-SFBGS<nnn>.esm`) or start with `BlueprintShips-`;
-   - the builder uses BuildKit 0.4.1 (`PluginWriter.Write`, `IdLock` with a committed `ids.lock.json`);
+   - the builder uses BuildKit 0.4.2 (`PluginWriter.Write`, `IdLock` with a committed `ids.lock.json`);
    - the README says what the mod does, how to install and uninstall it, and how to turn on Papyrus logging (in `StarfieldCustom.ini` under `[Papyrus]`: `bEnableLogging=1`, `bEnableTrace=1`, `bLoadDebugInformation=1`; the log is `Documents\My Games\Starfield\Logs\Script\Papyrus.0.log`).
 
 ## Build

@@ -32,7 +32,7 @@ A test is only as good as what the log can prove. These rules make every mod's b
    EndFunction
    ```
 
-   In a BuildKit 0.4.1 builder, `GameplayOptions.Debug(...)` makes the option (off by default) and `GameplayOptions.Group(...)` the mod's group; its README shows both. Console commands can't find a light plugin's quests or globals by name, so a console `set` command is no substitute for the option.
+   In a BuildKit 0.4.2 builder, `GameplayOptions.Debug(...)` makes the option (off by default) and `GameplayOptions.Group(...)` the mod's group; its README shows both. Console commands can't find a light plugin's quests or globals by name, so a console `set` command is no substitute for the option.
 
 3. **Text the player must see is a Message record**, shown with `Show()`. The `Debug` script does nothing on Xbox and PlayStation, so `Debug.Notification` and `Debug.MessageBox` are for debug text only. `Debug.Trace` and the debug switch stay in the mod; the README calls them PC only.
 

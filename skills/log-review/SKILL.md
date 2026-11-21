@@ -31,7 +31,7 @@ The tester played, quit the game and ran sf-log-collector 2.0.1, which writes on
 
 5. **By hand, only where needed.** For a mod with no rule file, search the unpacked `Papyrus.0.log` for the mod's prefix (for example `[MyMod]`) and for `error` lines that name its scripts. Read the lines around each FAIL. Read the crash logs and `events.txt` in the package for crashes during the session, and say which module the crash log blames. A crash log naming a DLL is a lead, not proof.
 
-6. **Saves, if the package has them.** Run sf-save-health 0.7.0 on the newest save, against the load order from the package:
+6. **Saves, if the package has them.** Run sf-save-health 0.7.1 on the newest save, against the load order from the package:
 
    ```
    sf-save-health check "<unpacked>\saves\<save>.sfs" --plugins "<unpacked>\appdata\Plugins.txt"

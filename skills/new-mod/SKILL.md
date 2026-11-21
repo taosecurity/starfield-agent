@@ -28,7 +28,7 @@ Makes a project that builds from the first day. Run the `setup` skill first if t
    sf-mod-build doctor
    ```
 
-   The template's builder uses BuildKit 0.4.1 (pinned in its project file) and Mutagen 0.54.4. Don't change the pins unless the user asks. Without .NET or the Creation Kit, say what is missing (from `doctor`) and stop here.
+   The template's builder pins an exact BuildKit version in its project file (sf-mod-build 0.1.1's template pins 0.4.0, which is tested with Mutagen 0.54.4; the newest is BuildKit 0.4.2). Don't change the pins unless the user asks. Without .NET or the Creation Kit, say what is missing (from `doctor`) and stop here.
 
 5. **Start git and the notes:**
    - `git init`, then a `.gitignore` that leaves out `dist/`, `.build/`, `creations-out/`, `*.zip`, `*.ba2`, `*.pex` and any copy of game files.

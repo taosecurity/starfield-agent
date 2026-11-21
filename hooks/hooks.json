@@ -1,0 +1,29 @@
+{
+  "description": "starfield-modding guards: keep the agent from changing the game's Data folder, saves and Plugins.txt, and keep Bethesda's files and code out of commits, pushes, releases and gists.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"${CLAUDE_PLUGIN_ROOT}/hooks/guard_game.py\"",
+            "timeout": 30,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"${CLAUDE_PLUGIN_ROOT}/hooks/guard_game_code.py\"",
+            "timeout": 120,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

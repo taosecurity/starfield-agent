@@ -1,5 +1,8 @@
 """Run every test of the starfield-modding plugin, then `claude plugin validate .`.
 
+The tests are every tests/test_*.py: test_skills.py (the skills), test_guard_game.py (the Data and saves guard)
+and test_guard_game_code.py (the game-code guard; needs git on PATH).
+
 Usage: python -I selftest.py [--no-claude] [--verbose]
 
 --no-claude  skip `claude plugin validate .` (for a machine without Claude Code; the run then says it was skipped)

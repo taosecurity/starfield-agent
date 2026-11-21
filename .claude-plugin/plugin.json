@@ -9,5 +9,25 @@
   "homepage": "https://github.com/taosecurity/starfield-modding",
   "repository": "https://github.com/taosecurity/starfield-modding",
   "license": "MIT",
-  "keywords": ["starfield", "modding", "papyrus", "creation-kit", "mutagen", "bethesda"]
+  "keywords": ["starfield", "modding", "papyrus", "creation-kit", "mutagen", "bethesda"],
+  "userConfig": {
+    "game_dir": {
+      "type": "directory",
+      "title": "Starfield game folder (optional)",
+      "description": "The folder that holds Starfield.exe, if it is not a normal Steam or Game Pass install. Its Data folder is guarded. Leave empty to detect it.",
+      "required": false
+    },
+    "saves_dir": {
+      "type": "directory",
+      "title": "Starfield saves folder (optional)",
+      "description": "Only if your saves are not in Documents\\My Games\\Starfield\\Saves. The folder is guarded. Leave empty to detect it.",
+      "required": false
+    },
+    "papyrus_ref": {
+      "type": "directory",
+      "title": "sf-papyrus-ref folder (optional)",
+      "description": "The folder that holds sf_papyrus_ref.py. The Papyrus lookups and the official-script check use it. Leave empty if it is on PATH or not installed.",
+      "required": false
+    }
+  }
 }

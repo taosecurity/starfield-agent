@@ -107,6 +107,15 @@ Chapter 15 of our modding guide shows a blunt version that refuses any command n
 4. The message says what was refused and why, and asks the agent to let the user copy the file in or use the mod manager.
 5. If Python is missing the hook can't run. The hook entry sets `"onFailure": "block"` (Claude Code 2.1.295 and later) so it fails closed, and the `setup` skill checks Python first.
 
+As built in step 3 (`hooks/guard_game.py`, 41 tests in `tests/test_guard_game.py`):
+
+- A command "names" a guarded path when any path-like word (also after `--data=` or `-Path:`) normalizes into one (environment variables such as `$env:LOCALAPPDATA` expanded, Git Bash `/c/...` and WSL `/mnt/c/...` read as `C:\...`, `..` folded, links resolved where the path exists), or when the whole command, with quotes and `\ ` escapes removed, contains a guarded shape. A command whose working folder is inside a guarded folder counts as naming it, and there only the plain listing and reading commands pass, since a tool's default output would land in that folder.
+- A command that names a guarded path is also refused when it holds `$(...)`, backticks or `<(...)`, which the guard can't read, or a PowerShell cmdlet that changes files (`Out-File`, `Set-Content`, `Copy-Item`, `Remove-Item` and the like) anywhere in it. `2>&1`, `2>/dev/null` and `>$null` aren't redirections into a file.
+- The read-only table has two parts: plain commands (any arguments, `sort -o` excepted) and the PMT tools with their read-only modes. A tool's output options (`--out`, `--log`, `--state` and the like) must not point into a guarded folder.
+- Guarded by shape, so any Steam library, Game Pass drive, OneDrive Documents or Proton prefix is covered without detection: `.../steamapps/common/Starfield/Data`, `.../XboxGames/Starfield/Content/Data`, `.../My Games/Starfield/Saves`, `.../Packages/BethesdaSoftworks.ProjectGold_*`, and `AppData/Local/Starfield/Plugins.txt` and `ContentCatalog.txt` (the second added in step 3: the game and the mod managers own it too). The settings add `game_dir\Data`, `saves_dir` and each `extra_guarded` folder.
+- A hook input it can't read is refused (fail closed), and the message says how to report it and how to turn the plugin off meanwhile.
+- Known limits: a shell guard reads text, so a path built at run time (a variable assigned in one part and used in the next, a script file the command runs) isn't seen. The skills say this, and the file-tool check has no such gap.
+
 ### 4.2 guard_game_code (PreToolUse, matcher `Bash|PowerShell`, only for `git add|commit|push`, `gh release create|upload`, `gh gist create`)
 
 1. For `git commit` and `git push`, it lists the files that would go up (`git diff --cached --name-only`, or `git diff --name-only @{u}..` for a push) in the command's repo. For `git add` and `gh release`, it reads the named paths.
@@ -115,6 +124,14 @@ Chapter 15 of our modding guide shows a blunt version that refuses any command n
 4. It never runs the command itself and never changes the repo.
 
 Whether a generic game-code guard is good enough is settled in step 3 with tests. If the decompiler and `.psc` checks give false alarms on a modder's own scripts, they drop to warnings (exit 0 with a message) and only the by-name checks refuse.
+
+Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_game_code.py`):
+
+- Refused (exit 2): official plugins and archives by name, `Starfield.exe`, `CreationKit.exe`, the Creation Kit's `ContentResources.zip` (its zip of official script sources), Ghidra projects (`.gpr`, anything in a `.rep` folder), IDA databases (`.i64`, `.idb`), saves (`.sfs`), `.psc` files under `Scripts/Source/Base`, and `.psc` files whose name sf-papyrus-ref's `script <name>` finds (exit 0). The game's other DLLs are not checked by name, since their names change between versions and many are shared with other games.
+- Asked (exit 0 with `permissionDecision: "ask"`, so the user decides): a text file (`.psc`, `.c`, `.cpp`, `.h`, `.txt` and the like) whose first 4 KB look like decompiler output (a Champollion or Hex-Rays banner, a "decompiled by" comment, Ghidra's `/* WARNING: ...` lines, or two or more `FUN_`/`DAT_` names with `undefined` types). This is the warning form the paragraph above allows: the banner test is a guess.
+- What it lists: `git add` through `git add --dry-run` with the same arguments; `git commit` from the index (`git diff --cached`), plus tracked changes for `-a` and named paths; `git push` from every commit the push would send (`git log <revs> --not --remotes`), so a file added and removed again in later commits is still caught; `gh release create|upload` and `gh gist create` from the named files, reading the members of a `.zip`. It follows `cd`, `Set-Location` and `git -C`.
+- False-alarm check (step 3): the checks ran over 11,395 git-tracked `.psc`, `.c`, `.cpp`, `.h` and `.txt` files in 228 local repos of our own and of other authors we follow, with sf-papyrus-ref installed. Our own scripts raised nothing. Seventeen refusals were all edited copies of official scripts in other authors' patch repos (they keep the official name so they replace the game's script), which the rule says never to share. The one "ask" was decompiler pseudocode quoted in a C++ comment. So the by-name checks stay refusals, and only the content test asks.
+- Without sf-papyrus-ref, `.psc` files are checked by the `Scripts/Source/Base` folder only, and the message says the check was weaker.
 
 ## 5. MCP: sf-papyrus-ref
 
@@ -153,6 +170,8 @@ The `setup` skill writes file 3 after showing the user what it found. Keys in fi
 - Vortex: the user drops the zip on Vortex. Vortex's staging folder can be added to the guarded list.
 
 Plugin `userConfig` (a manifest field the reference lists) may replace file 3. Step 3 tests whether hooks can read its values; if they can, it is used, and the file stays as the fallback.
+
+Answer (step 3, from the plugins reference read 2026-11-20): yes. Claude Code exports every option to hook processes as `CLAUDE_PLUGIN_OPTION_<KEY>` (key upper-cased), and substitutes `${user_config.KEY}` in MCP server configs and in exec-form hook arguments, but not in shell-form hook commands. So `plugin.json` declares three optional `directory` options, `game_dir`, `saves_dir` and `papyrus_ref`, which Claude Code offers when the plugin is enabled, and `sfmod_config.py` reads `CLAUDE_PLUGIN_OPTION_GAME_DIR`, `..._SAVES_DIR`, `..._PAPYRUS_REF` and `..._EXTRA_GUARDED` right after the `SFMOD_*` variables (an empty value counts as unset). `extra_guarded` and `mod_manager` stay in the settings files, which remain the fallback. `claude plugin validate .` accepts the options. The clean install test (step 6) must confirm that a value set in the dialog reaches the hook.
 
 ## 7. What stays out, and why
 

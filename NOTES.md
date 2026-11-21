@@ -210,3 +210,14 @@ Install from GitHub, tested right after the release in an empty `CLAUDE_CONFIG_D
       MCP servers (1)  papyrus-ref
 
 All three commands exited 0. Still not tested: the interactive `/plugin configure` dialog.
+
+## Planned rename to starfield-agent (2026-11-20)
+
+The user wants the plugin called starfield-agent instead of starfield-modding (2026-11-20). The user chose to wait until the PMTGaps wrap-up is finished, because that session was editing the DD next steps and DevProcess, which name the plugin.
+
+When the wrap-up is done, rename everything in one pass:
+
+- This repo: the plugin and marketplace names in `.claude-plugin`, the skill prefix (`starfield-agent:build-mod` and so on), the MCP tool names, the settings file `.claude/starfield-modding.json` (becomes `.claude/starfield-agent.json`), the hooks, tests, README, AGENTS.md, DESIGN.md and CHANGELOG. Release it as 0.2.0, since the install commands change.
+- GitHub: rename the repo to taosecurity/starfield-agent (GitHub redirects the old links), then the local folder.
+- Elsewhere: the hub card in `tools\sites.json`, `tools\readme-check\repos.json`, the DD next-steps file `claude-code-plugin-starfield-modding.json`, DevProcess `content.py`, and the memory cards.
+- Both reviews before the push, as usual.

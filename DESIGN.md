@@ -1,0 +1,201 @@
+# starfield-modding: design
+
+This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
+
+- Status: design, written 2026-11-20. Nothing is built yet.
+- Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
+- Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
+
+## 1. What a modder gets
+
+After two commands, a modder using Claude Code has:
+
+- twelve skills for the jobs a Starfield mod repeats: set up, start a mod, build it, rebuild someone else's mod, evaluate a mod, write a test plan, review test logs, check a release, handle a game update, the logging rules, the never-share-game-code rules, and a wrap-up;
+- a guard hook that stops the agent from writing into the game's `Data` folder, the saves folder or the game's `Plugins.txt`;
+- a guard hook that stops the agent from committing or releasing Bethesda's files (game plugins and archives, executables, official script sources, decompiler and Ghidra output);
+- the `sf-papyrus-ref` MCP server, so the agent looks Papyrus functions up instead of recalling them.
+
+Install, as the README will show it:
+
+```
+claude plugin marketplace add taosecurity/starfield-modding
+claude plugin install starfield-modding@starfield-modding
+```
+
+Inside a session the same is `/plugin marketplace add taosecurity/starfield-modding`, then `/plugin install starfield-modding@starfield-modding`. Skills are then called as `/starfield-modding:<skill>`, and the agent also loads them by itself when a task matches.
+
+## 2. Folder layout
+
+The repo root is both the marketplace and the plugin (marketplace entry `"source": "./"`), the same shape Universal Modder and BGS Modding Superpowers use.
+
+```
+starfield-modding/
+  .claude-plugin/
+    plugin.json            name, version, description, author, homepage, repository, license, keywords
+    marketplace.json       name "starfield-modding", owner, one plugin entry with source "./"
+  skills/
+    setup/SKILL.md
+    new-mod/SKILL.md
+    build-mod/SKILL.md
+    rebuild-mod/SKILL.md
+    evaluate-mod/SKILL.md
+    test-plan/SKILL.md
+    log-review/SKILL.md
+    release-check/SKILL.md
+    patch-day/SKILL.md
+    logging-rules/SKILL.md
+    game-code-rules/SKILL.md
+    wrap-up/SKILL.md
+  hooks/
+    hooks.json             the two PreToolUse guards
+    guard_game.py          Data, saves and Plugins.txt guard
+    guard_game_code.py     game-code guard for git and gh
+    sfmod_config.py        shared: reads the path settings (section 6)
+  mcp/
+    papyrus_ref_launcher.py   starts sf-papyrus-ref, or a help-only stub when it is missing
+  .mcp.json                registers the launcher
+  tests/
+    test_guard_game.py
+    test_guard_game_code.py
+    test_launcher.py
+    test_skills.py         frontmatter, descriptions, tool names and versions, private-text scan
+  selftest.py              runs everything above plus `claude plugin validate .`
+  README.md  AGENTS.md  CHANGELOG.md  LICENSE  NOTES.md  DESIGN.md
+```
+
+Hooks and the launcher are Python 3 with the standard library only, because every Python-based tool the skills call needs Python anyway. Hook commands use the shell form `python -I "${CLAUDE_PLUGIN_ROOT}/hooks/<file>.py"`.
+
+## 3. Skills
+
+Each skill is one `SKILL.md` with plain numbered steps. Descriptions stay short (under 400 characters), because every skill description is loaded into every session. The skills never embed a tool's full option list: they name the command for the common case and tell the agent to read that tool's `AGENTS.md` for the rest, so a tool release does not make a skill wrong.
+
+Tool versions below are the current GitHub releases, checked 2026-11-20.
+
+| Skill | Use it when | What it does | Tools it calls | Comes from |
+|---|---|---|---|---|
+| `setup` | First use, or a tool seems missing | Finds the game (Steam, Game Pass), the saves folder and the mod manager (MO2, Vortex); writes the path settings; reports which tools are installed and their versions, with the install command for each missing one | each tool's `--version` or `doctor` | new |
+| `new-mod` | "Start a new mod" | Picks the mod name, plugin name and script prefix (naming rules below), makes the project folder, git, a `NOTES.md`, a `CLAUDE.md` with the mod rules, and a builder from the template | sf-mod-build 0.1.1 (`new`, `doctor`), BuildKit 0.4.1 | our build skill and mod rules |
+| `build-mod` | "Build", "bump", "package" | Compiles Papyrus with `-optimize` and never `-release`; builds the plugin; checks it; packs the archive and the zip (one plugin per zip, no `.psc` sources in it); records the version | sf-mod-build 0.1.1 (`build`), sf-mod-check 0.9.0 (`check`) | our build skill |
+| `rebuild-mod` | Remaking or fixing another author's mod | Permission first, written down; reads the original read-only; matches vanilla and sibling behavior with proper code, not the original's quirks; credits the author; then the build-mod steps | sf-pex-tools 0.1.0 (`compare`), sf-mod-check 0.9.0, BuildKit 0.4.1 | our rebuild rules |
+| `evaluate-mod` | "What does this mod do?", "what changed in this update?" | A first evaluation (records, scripts, overlap with the user's mods, permissions) or a compare of two versions (files by hash, scripts by `.pex` compare, plugins record by record), then whether it affects the user's own mods and load order | sf-mod-check 0.9.0 (`check`, `conflict`), sf-pex-tools 0.1.0, sf-load-order 0.1.1, sf-cut-check 0.1.9 (optional) | our evaluation shortcut |
+| `test-plan` | Before a test session | Writes a test plan for a new character, with a log rule for each check the log can prove | sf-test-plan 0.2.0 | our test plan habit |
+| `log-review` | After a test session | Reads a log-collector package: Papyrus log rules first, then the plan's log checks, crash logs and a save check; drafts a result per mod. NOT SEEN means not tested, not failed | sf-log-collector 2.0.1, papyrus-log-check 0.3.2, sf-test-plan 0.2.0, sf-save-health 0.7.0, sf-save-reader 0.1.3 | our log review skill |
+| `release-check` | Before an upload | Runs the release profile, checks permission and credits on record, the README's Papyrus logging section, naming, one plugin per zip, and for Creations the console rules; lists the archive contents. The user does the upload | sf-mod-check 0.9.0 (`release`), sf-papyrus-ref 0.1.0 (`check --creations`) | our release rules |
+| `patch-day` | After a game update | Checks DLL mods against the new game version and every project for drift, and writes one summary | sf-patch-day 0.1.2, sf-load-order 0.1.1 | our patch-day routine |
+| `logging-rules` | Writing or reviewing Papyrus | `Debug.Trace` with the mod's prefix in every script; a "Show Debug Messages (PC only)" option, off by default, in the mod's own Gameplay Options group; text the player must see as a Message record with `Show()`, since `Debug` does nothing on consoles; the README says how to turn on Papyrus logging | sf-papyrus-ref 0.1.0 (lookups) | our logging rule |
+| `game-code-rules` | Any commit, release, issue, post or chat that carries code | What may be shared (format facts, symbol names, your own code) and what never may (game executables and files, official `.psc`, decompiled code, Ghidra projects); what the hook enforces and what it can't | none | our never-share-game-code rule |
+| `wrap-up` | End of a work session | Updates the project's `NOTES.md` (what changed, why, the next step), commits finished and checked work with a clear message, and says what was committed; never commits saves, game files or build output | git | our wrap-up habit |
+
+Rules that several skills share (they live in `logging-rules`, `new-mod` and `build-mod`, written once and linked):
+
+- Plugin names are `<ModName>.esm`, with no spaces. A plugin name must never end in an official plugin's name (`-ShatteredSpace.esm`, `-Constellation.esm`, `-Starfield`, `-OldMars`, `-SFBGS…`) or start with `BlueprintShips-`, because the game drops such names from `Plugins.txt`. Use an `Addon` suffix instead.
+- Prefer conflict-free designs: no vanilla record edits unless the design needs them; inject with scripts and use the mod's own records.
+- Test with a new character.
+- Effect entries need EFIF and MUID, or they never apply (BuildKit adds them).
+- Mutagen-based builders write ONAM like the Creation Kit (BuildKit does).
+- Prove a bug in someone else's mod before reporting it: current version, own setup ruled out, code shown to run, evidence written down.
+
+## 4. Hooks
+
+### 4.1 guard_game (PreToolUse, matcher `Edit|Write|NotebookEdit|Bash|PowerShell`)
+
+Chapter 15 of our modding guide shows a blunt version that refuses any command naming the folders. That version also refuses `sf-mod-check check --data "<game>\Data"`, which every skill needs, so the plugin's guard is narrower but still fails closed:
+
+1. File tools (`Edit`, `Write`, `NotebookEdit`): refuse when `file_path` (always absolute) is inside a guarded folder or is a guarded file. Paths are compared after normalizing slashes, case and `..`, and after resolving links where the file exists.
+2. Shell tools (`Bash`, `PowerShell`): when the command names a guarded path, allow it only if every part of it (split on `;`, `&&`, `||`, `|`, newlines) starts with a known read-only command (`ls`, `dir`, `Get-ChildItem`, `cat`, `type`, `Get-Content`, `Test-Path`, `file`, `sha256sum`, `Get-FileHash`, and the read-only modes of the PMT tools such as `sf-mod-check check|conflict`, `sf-save-health check`, `sf-cut-check find|scan --out <elsewhere>`, `sf-load-order`), and no part has output redirection (`>`, `>>`, `Out-File`, `Set-Content`, `Tee-Object`). Anything else that names a guarded path is refused. The list is in one table at the top of the script, so a user can read it.
+3. Guarded by default: the game's `Data` folder (Steam `steamapps\common\Starfield\Data` in any library, Game Pass `XboxGames\Starfield\Content\Data`), the saves folder (`Documents\My Games\Starfield\Saves`, the OneDrive copy of Documents, and the Game Pass save container under `%LOCALAPPDATA%\Packages\BethesdaSoftworks.ProjectGold_*`), and `%LOCALAPPDATA%\Starfield\Plugins.txt`. Settings can add folders (a Vortex staging folder, an MO2 `overwrite` folder) or point at a moved install.
+4. The message says what was refused and why, and asks the agent to let the user copy the file in or use the mod manager.
+5. If Python is missing the hook can't run. The hook entry sets `"onFailure": "block"` (Claude Code 2.1.295 and later) so it fails closed, and the `setup` skill checks Python first.
+
+### 4.2 guard_game_code (PreToolUse, matcher `Bash|PowerShell`, only for `git add|commit|push`, `gh release create|upload`, `gh gist create`)
+
+1. For `git commit` and `git push`, it lists the files that would go up (`git diff --cached --name-only`, or `git diff --name-only @{u}..` for a push) in the command's repo. For `git add` and `gh release`, it reads the named paths.
+2. It refuses when any of them is: an official plugin or archive by name (`Starfield.esm`, `Constellation.esm`, `OldMars.esm`, `ShatteredSpace.esm`, `BlueprintShips-Starfield.esm`, `SFBGS*.esm`, `Starfield - *.ba2` and the DLC archives); the game's executable or its DLLs (`Starfield.exe`, `CreationKit.exe`); a Ghidra project (`*.gpr`, `*.rep`); a save (`*.sfs`); or a `.psc` whose script name is an official script. Official script names come from `sf-papyrus-ref script <name>` when that tool is installed (names are symbol data; the tool ships no Bethesda code). Without it, the hook refuses `.psc` files under a folder named `Scripts\Source\Base` or `Source\Scripts` copied from the Creation Kit, and says that the check is weaker.
+3. It also refuses a file whose first lines carry a decompiler banner (Champollion and Ghidra's export headers). This is a heuristic, and the `game-code-rules` skill says so.
+4. It never runs the command itself and never changes the repo.
+
+Whether a generic game-code guard is good enough is settled in step 3 with tests. If the decompiler and `.psc` checks give false alarms on a modder's own scripts, they drop to warnings (exit 0 with a message) and only the by-name checks refuse.
+
+## 5. MCP: sf-papyrus-ref
+
+`sf-papyrus-ref` is a separate download (a folder holding `sf_papyrus_ref.py`), so the plugin can't name its path. `.mcp.json` registers a small launcher:
+
+```json
+{
+  "mcpServers": {
+    "papyrus-ref": {
+      "command": "python",
+      "args": ["-I", "${CLAUDE_PLUGIN_ROOT}/mcp/papyrus_ref_launcher.py"]
+    }
+  }
+}
+```
+
+1. The launcher finds the tool from the `papyrus_ref` setting (section 6), then the `SF_PAPYRUS_REF` environment variable (the folder), then `sf_papyrus_ref.py` on `PATH`.
+2. Found: it runs `python -I <folder>/sf_papyrus_ref.py mcp --quiet` (the command in the tool's `AGENTS.md`) and passes stdin and stdout through. The four read-only tools appear as `mcp__plugin_starfield-modding_papyrus-ref__papyrus_lookup` and so on.
+3. Not found: it serves a minimal MCP server with one tool, `papyrus_setup_help`, which returns the download link and the setting to fill. That way a modder without the tool sees no failed server at every start, and the agent learns how to fix it.
+4. The launcher makes no network connections.
+
+Future idea, out of scope for 0.1.0: `sf-plugin-mcp`, a read-only MCP server built on our own plugin readers that answers "what is this FormID", "what points at it" and "who wins it in this load order" with gate-grade data.
+
+## 6. Paths and settings
+
+Settings are read in this order, the first one found wins for each key:
+
+1. Environment variables: `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED` (paths separated by `;`), `SF_PAPYRUS_REF`.
+2. The project's `.claude/starfield-modding.json`.
+3. The user's `starfield-modding.json` in `%APPDATA%\starfield-modding\` on Windows or `~/.config/starfield-modding/` elsewhere.
+4. Detected defaults: every Steam library listed in `steamapps\libraryfolders.vdf`, Game Pass `<drive>:\XboxGames\Starfield\Content`, Documents (with the OneDrive move read from the registry's Known Folders), and the mod manager found by the `setup` skill.
+
+The `setup` skill writes file 3 after showing the user what it found. Mod managers:
+
+- MO2: the agent builds into the project folder, and MO2's mod folder for the mod is set as the output only if the user asks. MO2's virtual `Data` means the real `Data` stays clean; the guard still covers it.
+- Vortex: the user drops the zip on Vortex. Vortex's staging folder can be added to the guarded list.
+
+Plugin `userConfig` (a manifest field the reference lists) may replace file 3. Step 3 tests whether hooks can read its values; if they can, it is used, and the file stays as the fallback.
+
+## 7. What stays out, and why
+
+- Our dashboard, publishing queue, test-package folders, log handoff folders, memory notes and session relays: they serve our own setup and would mean nothing to another modder.
+- Uploads to Nexus Mods and Bethesda Creations: the user does them, signed in with their own account.
+- Reverse-engineering skills (Ghidra, decompiling): they handle game code, which the plugin exists to keep out of public places.
+- Our Creation Kit docs skill: it is built on a private copy of the wiki.
+- Third-party tools we use privately (SFSearch, xEdit scripts): skills may mention xEdit as the user's choice, but the plugin calls only our public tools.
+- House rules such as our version naming for dated patches, our test account names and our folder names.
+- A rules file that loads into every session: the plugin adds skills and hooks only, and the `new-mod` skill writes a project `CLAUDE.md` that the user can edit.
+
+## 8. Test plan
+
+Every skill and hook gets a test, added in the step that adds it.
+
+1. `selftest.py` runs, and must pass before each commit:
+   - `claude plugin validate .` (and `--strict` once warnings are cleared);
+   - `tests/test_skills.py`: each `SKILL.md` has frontmatter with `name` equal to its folder and a description under 400 characters; every tool and version a skill names matches a table in `tests/tool_versions.json`; no private text (our folder names, our account names, our handoff folders);
+   - `tests/test_guard_game.py`: JSON on stdin for each case, exit 2 or 0 expected: writes into Steam and Game Pass `Data`, saves, OneDrive saves and `Plugins.txt` refused; `sf-mod-check check --data <Data>` and `dir <Data>` allowed; `dir <Data> > out.txt`, `copy x <Data>` and `ls <Data>; rm <Data>\x.esm` refused; mixed slashes, case and `..` handled; a settings file adds a folder;
+   - `tests/test_guard_game_code.py`: a temporary git repo with a staged `Starfield.esm`, an official `.psc` name, a `.gpr`, a decompiler banner, and the modder's own `.psc`; the first four refused, the last allowed;
+   - `tests/test_launcher.py`: the stub answers `initialize` and `tools/list` with `papyrus_setup_help`; with a fake `sf_papyrus_ref.py` that echoes, the launcher passes messages through.
+2. Clean install test (step 6): a fresh `CLAUDE_CONFIG_DIR` in an empty scratch folder; `claude plugin marketplace add <local repo>`, `claude plugin install starfield-modding@starfield-modding`, `claude plugin list`, then a headless `claude -p` asked to list its skills, and a hook check (a refused write into a fake `Data` folder named by the settings). Results go in `NOTES.md`.
+3. Haiku agent test (step 8): one agent given only `AGENTS.md` and a clean copy of the repo installs the plugin into a fresh config folder and lists its skills.
+4. `readme-check` exits 0 (closest kind: `tool`).
+
+## 9. Similar projects and credit
+
+Searched 2026-11-20 (GitHub, Claude Code plugin directories, skill directories). None is for Starfield.
+
+- [rehan-remade/universal-modder](https://github.com/rehan-remade/universal-modder), MIT, read at `a34eae7`: a general modding plugin. We borrow its shape (the repo root as both marketplace and plugin, `"source": "./"`). We use none of its code or text.
+- [BB-84C/bgs-modding-superpowers](https://github.com/BB-84C/bgs-modding-superpowers), MIT, read at `74d705a`: a Bethesda modpack-curation plugin for Skyrim and Fallout (MO2, xEdit, Papyrus). Same root-plugin shape; we use none of its code or text.
+- Spooky's Automod Toolkit Papyrus skill and skyrim-opencode-toolkit: Skyrim only, not used.
+
+The README's Credits section names the first two for the layout. A cross-link or upstream contribution is for later, and only with the user's OK.
+
+## 10. Build order (the relay's plan)
+
+1. This design.
+2. The skills (may take two steps: setup, new-mod, build-mod, rebuild-mod, evaluate-mod, test-plan first; then log-review, release-check, patch-day, logging-rules, game-code-rules, wrap-up), each with its test.
+3. The two hooks and `sfmod_config.py`, with tests; test `userConfig`.
+4. The MCP launcher and `.mcp.json`, with tests.
+5. README, AGENTS.md, LICENSE, CHANGELOG 0.1.0, manifests; `readme-check` exits 0.
+6. Clean install test.
+7. `/code-review` (medium) and `/security-review`; fix and retest.
+8. Haiku agent test.
+9. Create the repo, push, tag and release 0.1.0.

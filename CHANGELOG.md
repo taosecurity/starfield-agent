@@ -13,9 +13,11 @@ The plugin is now called starfield-agent. The skills, the hooks and the Papyrus 
 
 ### Upgrading from starfield-modding 0.1.0
 
-- Remove the old plugin with `/plugin uninstall starfield-modding@starfield-modding`, then install starfield-agent.
+- Remove the old plugin with `/plugin uninstall starfield-modding@starfield-modding` and its marketplace with `/plugin marketplace remove starfield-modding`, then install starfield-agent.
+- Plugin options set for the old plugin don't carry over. Set them again with `/plugin configure starfield-agent@starfield-agent`.
 - The GitHub repository moved to https://github.com/taosecurity/starfield-agent, and the old address forwards there.
-- Your settings keep working: when a `starfield-agent.json` file is missing, the plugin reads the old `starfield-modding.json` in the same place, with the same rules (a project's file still can't set `papyrus_ref`).
+- Your settings files keep working. The old `starfield-modding.json` is read after each new `starfield-agent.json`, with the same rules: its guarded folders add up with the rest, its other values count where the new file doesn't set them, and a project's file still can't set `papyrus_ref`.
+- The `setup` skill keeps the old file's values when it writes the new one.
 
 ### Example
 

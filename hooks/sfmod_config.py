@@ -9,8 +9,9 @@ Each key is read from the first place that has it:
    never trusted for papyrus_ref, which names a program to run (a downloaded project could ship its own file).
 3. The user's starfield-agent.json: %APPDATA%\\starfield-agent\\ on Windows, ~/.config/starfield-agent/ elsewhere
    (SFMOD_USER_CONFIG names another file, which the tests use).
-   Until 0.2.0 the plugin was called starfield-modding: when a starfield-agent.json file is missing, the old
-   starfield-modding.json in the same place is read instead, with the same rules.
+   Until 0.2.0 the plugin was called starfield-modding: the old starfield-modding.json next to each new file is
+   read too, after it and with the same rules. Its guarded folders add up with all the others, and its other
+   values count only where the new file doesn't set them.
 4. Detection: the guarded folders below match any Steam library, Game Pass install, OneDrive Documents and Proton
    prefix by their shape, so no install has to be found first.
 
@@ -55,27 +56,23 @@ NAME = "starfield-agent"
 OLD_NAME = "starfield-modding"   # the plugin's name before 0.2.0; its settings files are still read
 
 
-def _with_fallback(new_path, old_path):
-    """The new settings file when it exists, else the 0.1.0 file when that exists, else the new path."""
-    if not os.path.exists(new_path) and os.path.exists(old_path):
-        return old_path
-    return new_path
-
-
-def _user_config_path():
+def _user_config_paths():
+    """The user's settings files, new name first: [starfield-agent.json, the 0.1.0 starfield-modding.json].
+    SFMOD_USER_CONFIG replaces both (the tests use it)."""
     override = os.environ.get("SFMOD_USER_CONFIG")
     if override:
-        return override
+        return [override]
     if os.name == "nt":
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
     else:
         base = os.path.join(os.path.expanduser("~"), ".config")
-    return _with_fallback(os.path.join(base, NAME, NAME + ".json"), os.path.join(base, OLD_NAME, OLD_NAME + ".json"))
+    return [os.path.join(base, NAME, NAME + ".json"), os.path.join(base, OLD_NAME, OLD_NAME + ".json")]
 
 
-def project_config_path(cwd=None):
+def project_config_paths(cwd=None):
+    """The project's settings files, new name first: [.claude/starfield-agent.json, .claude/starfield-modding.json]."""
     folder = os.path.join(project_dir(cwd), ".claude")
-    return _with_fallback(os.path.join(folder, NAME + ".json"), os.path.join(folder, OLD_NAME + ".json"))
+    return [os.path.join(folder, NAME + ".json"), os.path.join(folder, OLD_NAME + ".json")]
 
 
 def _read_json(path, problems):
@@ -119,16 +116,23 @@ def load_settings(cwd=None):
     """Return (settings, sources, problems). sources maps each key to where its value came from.
     settings["guard_paths"] lists (key, path) from every layer, for guarded_roots."""
     problems = []
-    project_file = project_config_path(cwd)
-    project_label = "project file " + project_file
-    layers = [
-        (project_label, _read_json(project_file, problems)),
-        ("user file " + _user_config_path(), _read_json(_user_config_path(), problems)),
-    ]
-    for key in UNTRUSTED_IN_PROJECT:
-        if not is_unset(layers[0][1].get(key)):
-            problems.append(f"ignored {key} in {project_file}: it names a program to run, so it is read only from "
-                            "your own settings file, the plugin options or an environment variable")
+    # Each layer lists its new-name file first, then the 0.1.0 file; both are read, so the old file's guarded
+    # folders still add up and a value is taken from the old file only when the new one doesn't set it.
+    project_labels = set()
+    layers = []
+    for path in project_config_paths(cwd):
+        label = "project file " + path
+        project_labels.add(label)
+        layers.append((label, _read_json(path, problems)))
+    for path in _user_config_paths():
+        layers.append(("user file " + path, _read_json(path, problems)))
+    for label, data in layers:
+        if label in project_labels:
+            for key in UNTRUSTED_IN_PROJECT:
+                if not is_unset(data.get(key)):
+                    problems.append(f"ignored {key} in {label[len('project file '):]}: it names a program to run, so "
+                                    "it is read only from your own settings file, the plugin options or an "
+                                    "environment variable")
     settings, sources, guard_paths = {}, {}, []
 
     def as_list(key, value):
@@ -144,7 +148,7 @@ def load_settings(cwd=None):
             if not is_unset(value):
                 found.append(("environment variable " + env_name, value.strip()))
         for label, data in layers:
-            if label == project_label and key in UNTRUSTED_IN_PROJECT:
+            if label in project_labels and key in UNTRUSTED_IN_PROJECT:
                 continue
             value = data.get(key)
             if not is_unset(value):

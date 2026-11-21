@@ -2,8 +2,8 @@
 
 This is the design of `starfield-agent`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG, and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews"). Version 0.1.0 was released on 2026-11-20.
-- Target: version 0.1.0, MIT license. Renamed from starfield-modding to starfield-agent in 0.2.0 (2026-11-21); repo `taosecurity/starfield-agent`. The settings files fall back to the old `starfield-modding.json` names (section 6).
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests (109 in 0.2.0) and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG, and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews"). Version 0.1.0 was released on 2026-11-20.
+- Target: version 0.2.0 (0.1.0 was the first release), MIT license. Renamed from starfield-modding to starfield-agent in 0.2.0 (2026-11-21); repo `taosecurity/starfield-agent`. The old `starfield-modding.json` settings files are still read after the new ones (section 6).
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
 ## 1. What a modder gets

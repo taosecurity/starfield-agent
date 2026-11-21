@@ -118,14 +118,40 @@ class FileTools(GuardCase):
             json.dump({"game_dir": r"G:\Games\Starfield"}, f)
         self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
 
-    def test_new_project_settings_file_wins_over_old(self):
+    def test_old_and_new_project_files_guard_together(self):
+        # A new file must not hide folders the old one guards (no layer takes a guarded folder away).
         os.makedirs(os.path.join(self.tmp.name, ".claude"))
         with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
-            json.dump({"game_dir": r"G:\Games\Starfield"}, f)
+            json.dump({"game_dir": r"G:\Games\Starfield", "extra_guarded": [r"D:\MO2\overwrite"]}, f)
         with open(os.path.join(self.tmp.name, ".claude", "starfield-agent.json"), "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"K:\Other\Starfield"}, f)
         self.refused("Write", {"file_path": r"K:\Other\Starfield\Data\x.esm"})
-        self.allowed("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
+        self.refused("Write", {"file_path": r"G:\Games\Starfield\Data\x.esm"})
+        self.refused("Write", {"file_path": r"D:\MO2\overwrite\x.esp"})
+
+    def test_old_project_file_still_cannot_set_papyrus_ref(self):
+        sys.path.insert(0, str(ROOT / "hooks"))
+        try:
+            import sfmod_config
+            os.makedirs(os.path.join(self.tmp.name, ".claude"))
+            with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+                json.dump({"papyrus_ref": r"C:\Evil"}, f)
+            saved = {k: os.environ.get(k) for k in ("SFMOD_USER_CONFIG", "SF_PAPYRUS_REF", "CLAUDE_PLUGIN_OPTION_PAPYRUS_REF")}
+            os.environ["SFMOD_USER_CONFIG"] = self.user_config
+            os.environ.pop("SF_PAPYRUS_REF", None)
+            os.environ.pop("CLAUDE_PLUGIN_OPTION_PAPYRUS_REF", None)
+            try:
+                settings, _, problems = sfmod_config.load_settings(self.tmp.name)
+            finally:
+                for k, v in saved.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+            self.assertNotIn("papyrus_ref", settings)
+            self.assertTrue(any("ignored papyrus_ref" in p for p in problems))
+        finally:
+            sys.path.remove(str(ROOT / "hooks"))
 
     def test_env_var_saves_dir(self):
         self.env["SFMOD_SAVES_DIR"] = r"F:\Backup\Saves"
@@ -164,26 +190,33 @@ class UserFileName(unittest.TestCase):
         sys.path.remove(str(ROOT / "hooks"))
         self.tmp.cleanup()
 
-    def write(self, name):
+    def write(self, name, data):
         folder = os.path.join(self.base, name)
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, name + ".json")
         with open(path, "w", encoding="utf-8") as f:
-            f.write("{}")
+            json.dump(data, f)
         return path
 
-    def test_new_name_when_nothing_exists(self):
-        self.assertEqual(self.cfg._user_config_path(),
-                         os.path.join(self.base, "starfield-agent", "starfield-agent.json"))
+    def test_paths_new_name_first(self):
+        self.assertEqual(self.cfg._user_config_paths(),
+                         [os.path.join(self.base, "starfield-agent", "starfield-agent.json"),
+                          os.path.join(self.base, "starfield-modding", "starfield-modding.json")])
 
     def test_old_file_read_when_new_is_missing(self):
-        old = self.write("starfield-modding")
-        self.assertEqual(self.cfg._user_config_path(), old)
+        self.write("starfield-modding", {"papyrus_ref": r"C:\Tools\ref"})
+        settings, sources, _ = self.cfg.load_settings(self.tmp.name)
+        self.assertEqual(settings.get("papyrus_ref"), r"C:\Tools\ref")
+        self.assertIn("starfield-modding.json", sources["papyrus_ref"])
 
-    def test_new_file_wins(self):
-        self.write("starfield-modding")
-        new = self.write("starfield-agent")
-        self.assertEqual(self.cfg._user_config_path(), new)
+    def test_new_value_wins_and_old_folders_still_guarded(self):
+        self.write("starfield-modding", {"papyrus_ref": r"C:\Old", "extra_guarded": [r"D:\MO2\overwrite"]})
+        self.write("starfield-agent", {"papyrus_ref": r"C:\New", "game_dir": r"G:\SF"})
+        settings, _, _ = self.cfg.load_settings(self.tmp.name)
+        self.assertEqual(settings.get("papyrus_ref"), r"C:\New")
+        roots = [r for _, r in self.cfg.guarded_roots(settings, self.tmp.name)]
+        self.assertTrue(any(r.endswith("mo2/overwrite") for r in roots), roots)
+        self.assertTrue(any(r.endswith("g:/sf/data") for r in roots), roots)
 
 
 class ShellTools(GuardCase):

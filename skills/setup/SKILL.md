@@ -49,6 +49,8 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    - Windows: `%APPDATA%\starfield-agent\starfield-agent.json`
    - Linux or macOS: `~/.config/starfield-agent/starfield-agent.json`
 
+   Upgrading from 0.1.0, when the plugin was called starfield-modding: first read the old file in the same place (`%APPDATA%\starfield-modding\starfield-modding.json`, or `~/.config/starfield-modding/starfield-modding.json`). Keep every value it holds in what you propose (its `extra_guarded` folders, `papyrus_ref` and `mod_manager` too) unless the user says to drop one. The old file is still read after the new one, so leave it in place unless the user asks to delete it. Plugin options set for the old plugin (`/plugin configure starfield-modding@starfield-modding`) don't carry over: if the user had any, set them again with `claude plugin configure starfield-agent@starfield-agent`.
+
    ```json
    {
      "game_dir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Starfield",

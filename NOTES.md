@@ -226,6 +226,7 @@ When the wrap-up is done, rename everything in one pass:
 
 ## Release review (2026-11-20)
 
-- The user kept both guard policies from the relay's "For the review" list: the game-code guard still refuses commits of `.psc` files with official script names, and a project's `.claude/starfield-modding.json` still can't set `papyrus_ref`.
-- Hub card and What's new item live (site 011f2a2); the repo is in `tools\readme-check\repos.json` (all repos pass); DD next steps: build step closed, two follow-ups (watch for issues; one real session with the plugin on and a try of the `/plugin configure` dialog, which no test has covered).
-- The throwaway test folder `D:\Starfield Scratch\PluginCleanTest` was deleted.
+- Both guard policies stay as released: the game-code guard still refuses commits of `.psc` files with official script names, and a project's `.claude/starfield-modding.json` still can't set `papyrus_ref`.
+- The plugin is listed on the Development Hub (https://taosecurity.github.io/), with a What's new item.
+- Still untested: the interactive `/plugin configure` dialog, and a full real modding session with the stricter guards on.
+- The throwaway test folders used by the release tests were deleted.

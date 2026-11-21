@@ -21,9 +21,10 @@ The plugin is now called starfield-agent. The skills, the hooks and the Papyrus 
 
 ### Example
 
-The guard's refusal now names the new plugin:
+The guard's refusal now names the new plugin. This is its real output when the assistant tries to write a plugin into the game's Data folder:
 
-    starfield-agent guard: refused to change C:/Program Files (x86)/Steam/steamapps/common/Starfield/Data/MyMod.esm, because it is in the game's Data folder (Steam).
+    starfield-agent guard: refused to change C:\Program Files (x86)\Steam\steamapps\common\Starfield\Data\MyMod.esm, because it is in the game's Data folder (Steam).
+    Copy the file in yourself or install it with your mod manager; the agent only reads these folders. To guard more folders or point at a moved install, see the starfield-agent README, "Settings".
 
 ## 0.1.0 (2026-11-20)
 

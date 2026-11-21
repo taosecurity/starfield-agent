@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "papyrus-ref": {
+      "command": "python",
+      "args": ["-I", "${CLAUDE_PLUGIN_ROOT}/mcp/papyrus_ref_launcher.py"]
+    }
+  }
+}

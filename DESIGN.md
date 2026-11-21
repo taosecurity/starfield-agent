@@ -153,7 +153,14 @@ Settled in step 3 (`hooks/guard_game_code.py`, 24 tests in `tests/test_guard_gam
 3. Not found: it serves a minimal MCP server with one tool, `papyrus_setup_help`, which returns the download link and the setting to fill. That way a modder without the tool sees no failed server at every start, and the agent learns how to fix it.
 4. The launcher makes no network connections.
 
-Future idea, out of scope for 0.1.0: `sf-plugin-mcp`, a read-only MCP server built on our own plugin readers that answers "what is this FormID", "what points at it" and "who wins it in this load order" with gate-grade data.
+As built (step 5 of the relay, 2026-11-20):
+
+- The launcher reads the `papyrus_ref` setting through `hooks/sfmod_config.py`'s `load_settings`, so it uses the same order as the hooks: `SF_PAPYRUS_REF`, the plugin option `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF`, the project file, then the user file. A `--papyrus-ref <folder>` argument comes first, and PATH (`sf_papyrus_ref.py`, then the `sf-papyrus-ref` command) comes last. Empty values and unsubstituted `${...}` placeholders are ignored.
+- `.mcp.json` does not pass `${user_config.papyrus_ref}`. Claude Code 2.1.330 has messages for an MCP config with missing configuration ("has missing required configuration, skipping MCP config", `user_config_missing`), and the option is optional, so passing it might hide the server from everyone who leaves it empty (not tested yet). The clean install test (step 6) checks whether `CLAUDE_PLUGIN_OPTION_PAPYRUS_REF` reaches MCP server processes; if it doesn't, the option is documented as hooks-only for the MCP server and the settings file or `SF_PAPYRUS_REF` is the way to name the folder.
+- `--find` prints what the launcher would start and exits (0 found, 1 not found); `--log <file>` copies its messages, which otherwise go to stderr, to a file.
+- `tests/test_launcher.py` (12 tests): the stub's replies, bad lines and unknown methods, each way of finding the tool with a fake echoing `sf_papyrus_ref.py`, the exit code passed back, and one real run against an installed sf-papyrus-ref (set `SFMOD_TEST_PAPYRUS_REF` or `SF_PAPYRUS_REF`; skipped otherwise).
+
+Future idea, out of scope for 0.1.0 (confirmed at step 5): `sf-plugin-mcp`, a read-only MCP server built on our own plugin readers that answers "what is this FormID", "what points at it" and "who wins it in this load order" with gate-grade data.
 
 ## 6. Paths and settings
 

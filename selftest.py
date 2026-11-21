@@ -1,7 +1,8 @@
 """Run every test of the starfield-modding plugin, then `claude plugin validate .`.
 
 The tests are every tests/test_*.py: test_skills.py (the skills), test_guard_game.py (the Data and saves guard)
-and test_guard_game_code.py (the game-code guard; needs git on PATH).
+test_guard_game_code.py (the game-code guard; needs git on PATH) and test_launcher.py (the MCP launcher; its real
+sf-papyrus-ref run needs SFMOD_TEST_PAPYRUS_REF or SF_PAPYRUS_REF set to the tool's folder, else it is skipped).
 
 Usage: python -I selftest.py [--no-claude] [--verbose]
 

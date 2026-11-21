@@ -2,7 +2,7 @@
 
 This is the design of `starfield-modding`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, six skills (setup, new-mod, build-mod, rebuild-mod, evaluate-mod, test-plan), `tests/test_skills.py` and `selftest.py`.
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 82 tests and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG (0.1.0, unreleased).
 - Target: version 0.1.0, MIT license, repo `taosecurity/starfield-modding`.
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 

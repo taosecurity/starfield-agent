@@ -37,7 +37,7 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
    | sf-cut-check 0.1.9 | `sf-cut-check --version` | cut-content lookups (optional) |
    | sf-test-plan 0.2.0 | `python -I sf_test_plan.py --help` in its folder | test plans |
    | sf-papyrus-ref 0.1.0 | `python -I sf_papyrus_ref.py lookup Debug.Notification --no-local` in its folder | Papyrus lookups and the MCP server |
-   | sf-patch-day 0.1.2 | `python -I sf-patch-day.py --version` in its folder | after a game update |
+   | sf-patch-day 0.1.3 | `python -I sf-patch-day.py --version` in its folder | after a game update |
    | sf-log-collector 2.0.1 | `Collect-StarfieldTestLogs.ps1` exists in its folder | gathering test logs |
    | papyrus-log-check 0.3.2 | its `--version` | reading the Papyrus log |
    | sf-save-health 0.7.0 | `sf-save-health --help` (exit 3 is expected; it has no `--version`, and every report's first line names the version) | save checks after a test |

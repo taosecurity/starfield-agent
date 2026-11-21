@@ -221,3 +221,5 @@ When the wrap-up is done, rename everything in one pass:
 - GitHub: rename the repo to taosecurity/starfield-agent (GitHub redirects the old links), then the local folder.
 - Elsewhere: the hub card in `tools\sites.json`, `tools\readme-check\repos.json`, the DD next-steps file `claude-code-plugin-starfield-modding.json`, DevProcess `content.py`, and the memory cards.
 - Both reviews before the push, as usual.
+
+- Handed off 2026-11-20: the PMTGaps master took the rename on as step R in `PMTGaps\WORKPLAN.md`, after the wrap-up W (PMTGaps commit 0cc60c5).

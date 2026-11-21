@@ -28,9 +28,8 @@ Until version 0.2.0 this plugin was called starfield-modding. If you installed i
 3. If you set plugin options for the old plugin (game folder, saves folder, sf-papyrus-ref folder), set them again
    with `/plugin configure starfield-agent@starfield-agent`. Options don't move to the new name.
 
-Your settings files keep working. The old `starfield-modding.json` is still read after each new
-`starfield-agent.json`: the folders it guards stay guarded, and its other values count wherever the new file doesn't
-set them.
+Your settings files keep working: the old `starfield-modding.json` files are still read (see
+[Settings](#settings) for the rules).
 
 ## Example
 
@@ -51,12 +50,12 @@ The plugin's own self-test, run from the plugin folder:
 
 ```
 > python -I selftest.py
-.............................................................................................................
+..............................................................................................................
 ----------------------------------------------------------------------
-Ran 109 tests in 12.406s
+Ran 110 tests in 12.836s
 
 OK
-selftest: 109 tests, OK
+selftest: 110 tests, OK
 Validating marketplace manifest: ...\starfield-agent\.claude-plugin\marketplace.json
 ...
 ✔ Validation passed
@@ -164,9 +163,9 @@ Each setting is read from the first place that has it:
 3. The project's `.claude/starfield-agent.json`. It can't set `papyrus_ref`, because that setting names a program
    to run and a project you download could ship its own file; the guard ignores it there and says so.
 4. Your own `starfield-agent.json`: `%APPDATA%\starfield-agent\` on Windows, `~/.config/starfield-agent/`
-   on Linux and macOS. The `setup` skill writes this file after you agree. Next to each of the two files above, the
-   old `starfield-modding.json` (the name before 0.2.0) is read too, right after it: its guarded folders add up with
-   the rest, and its other values count only where the new file doesn't set them.
+   on Linux and macOS. The `setup` skill writes this file after you agree.
+
+   Until 0.2.0 the plugin was called starfield-modding. The old `starfield-modding.json` next to each file is read too, after both new files: its guarded folders add up with the rest (to unguard a folder, remove it from the old file too, or delete the old file), and its other values count only where neither new file sets them. A project's old file can't set `papyrus_ref` either.
 
 The folder settings (`game_dir`, `saves_dir`, `extra_guarded`) add up instead: every folder named in any of these
 places is guarded, so a project's settings file can add folders but never take one away. An empty option, or one

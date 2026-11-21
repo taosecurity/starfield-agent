@@ -2,7 +2,7 @@
 
 This is the design of `starfield-agent`, a Claude Code plugin and plugin marketplace for Starfield mod authors. It gives an agent the working habits we use for our own mods, as skills it can load and hooks it cannot ignore, and it points each skill at the free public tools that do the real checks.
 
-- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests (109 in 0.2.0) and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG, and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews"). Version 0.1.0 was released on 2026-11-20.
+- Status: design, written 2026-11-20. Built so far (2026-11-20): the manifests, all twelve skills, both hooks, the MCP launcher, 103 tests (110 in 0.2.0) and `selftest.py`, and the README, AGENTS.md, LICENSE and CHANGELOG, and the clean install test (`NOTES.md`), and both reviews with their fixes (`NOTES.md`, "Reviews"). Version 0.1.0 was released on 2026-11-20.
 - Target: version 0.2.0 (0.1.0 was the first release), MIT license. Renamed from starfield-modding to starfield-agent in 0.2.0 (2026-11-21); repo `taosecurity/starfield-agent`. The old `starfield-modding.json` settings files are still read after the new ones (section 6).
 - Checked against: Claude Code 2.1.330 and the official docs at code.claude.com (plugins, plugins-reference, plugin-marketplaces, marketplace-reference, skills, hooks, mcp), read 2026-11-20.
 
@@ -171,6 +171,7 @@ Settings are read in this order, the first one found wins for each key:
 1. Environment variables: `SFMOD_GAME_DIR`, `SFMOD_SAVES_DIR`, `SFMOD_EXTRA_GUARDED` (paths separated by `;`), `SF_PAPYRUS_REF`.
 2. The project's `.claude/starfield-agent.json`.
 3. The user's `starfield-agent.json` in `%APPDATA%\starfield-agent\` on Windows or `~/.config/starfield-agent/` elsewhere.
+   Until 0.2.0 the plugin was called starfield-modding. The old `starfield-modding.json` next to each file is read too, after both new files: its guarded folders add up with the rest (to unguard a folder, remove it from the old file too, or delete the old file), and its other values count only where neither new file sets them. A project's old file can't set `papyrus_ref` either.
 4. Detected defaults: every Steam library listed in `steamapps\libraryfolders.vdf`, Game Pass `<drive>:\XboxGames\Starfield\Content`, Documents (with the OneDrive move read from the registry's Known Folders), and the mod manager found by the `setup` skill.
 
 The `setup` skill writes file 3 after showing the user what it found. Keys in files 2 and 3 (fixed in step 2a): `game_dir` (the folder holding `Starfield.exe`), `saves_dir`, `extra_guarded` (a list of folders), `papyrus_ref` (the folder holding `sf_papyrus_ref.py`) and `mod_manager` (`{"kind": "mo2" | "vortex" | "none", "path": ...}`). Mod managers:

@@ -136,10 +136,12 @@ class FileTools(GuardCase):
             os.makedirs(os.path.join(self.tmp.name, ".claude"))
             with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
                 json.dump({"papyrus_ref": r"C:\Evil"}, f)
-            saved = {k: os.environ.get(k) for k in ("SFMOD_USER_CONFIG", "SF_PAPYRUS_REF", "CLAUDE_PLUGIN_OPTION_PAPYRUS_REF")}
+            names = ["CLAUDE_PROJECT_DIR", "SF_PAPYRUS_REF"]
+            names += [k for k in os.environ if k.startswith(("SFMOD_", "CLAUDE_PLUGIN_OPTION_"))]
+            saved = {k: os.environ.get(k) for k in names + ["SFMOD_USER_CONFIG"]}
+            for k in names:
+                os.environ.pop(k, None)
             os.environ["SFMOD_USER_CONFIG"] = self.user_config
-            os.environ.pop("SF_PAPYRUS_REF", None)
-            os.environ.pop("CLAUDE_PLUGIN_OPTION_PAPYRUS_REF", None)
             try:
                 settings, _, problems = sfmod_config.load_settings(self.tmp.name)
             finally:
@@ -175,8 +177,11 @@ class UserFileName(unittest.TestCase):
         import sfmod_config
         self.cfg = sfmod_config
         self.tmp = tempfile.TemporaryDirectory()
-        self.saved = {k: os.environ.get(k) for k in ("SFMOD_USER_CONFIG", "APPDATA", "HOME", "USERPROFILE")}
-        os.environ.pop("SFMOD_USER_CONFIG", None)
+        names = ["APPDATA", "HOME", "USERPROFILE", "CLAUDE_PROJECT_DIR", "SF_PAPYRUS_REF"]
+        names += [k for k in os.environ if k.startswith(("SFMOD_", "CLAUDE_PLUGIN_OPTION_"))]
+        self.saved = {k: os.environ.get(k) for k in names}
+        for k in names:
+            os.environ.pop(k, None)
         os.environ["APPDATA"] = self.tmp.name
         os.environ["HOME"] = os.environ["USERPROFILE"] = self.tmp.name
         self.base = self.tmp.name if os.name == "nt" else os.path.join(self.tmp.name, ".config")
@@ -208,6 +213,14 @@ class UserFileName(unittest.TestCase):
         settings, sources, _ = self.cfg.load_settings(self.tmp.name)
         self.assertEqual(settings.get("papyrus_ref"), r"C:\Tools\ref")
         self.assertIn("starfield-modding.json", sources["papyrus_ref"])
+
+    def test_users_new_file_beats_projects_old_file(self):
+        os.makedirs(os.path.join(self.tmp.name, ".claude"))
+        with open(os.path.join(self.tmp.name, ".claude", "starfield-modding.json"), "w", encoding="utf-8") as f:
+            json.dump({"mod_manager": {"kind": "mo2"}}, f)
+        self.write("starfield-agent", {"mod_manager": {"kind": "vortex"}})
+        settings, _, _ = self.cfg.load_settings(self.tmp.name)
+        self.assertEqual(settings["mod_manager"]["kind"], "vortex")
 
     def test_new_value_wins_and_old_folders_still_guarded(self):
         self.write("starfield-modding", {"papyrus_ref": r"C:\Old", "extra_guarded": [r"D:\MO2\overwrite"]})

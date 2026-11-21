@@ -10,8 +10,9 @@ Each key is read from the first place that has it:
 3. The user's starfield-agent.json: %APPDATA%\\starfield-agent\\ on Windows, ~/.config/starfield-agent/ elsewhere
    (SFMOD_USER_CONFIG names another file, which the tests use).
    Until 0.2.0 the plugin was called starfield-modding: the old starfield-modding.json next to each new file is
-   read too, after it and with the same rules. Its guarded folders add up with all the others, and its other
-   values count only where the new file doesn't set them.
+   read too, after both new files and with the same rules. Its guarded folders add up with all the others (so a
+   folder is unguarded only by removing it from the old file too), and its other values count only where neither
+   new file sets them.
 4. Detection: the guarded folders below match any Steam library, Game Pass install, OneDrive Documents and Proton
    prefix by their shape, so no install has to be found first.
 
@@ -116,16 +117,20 @@ def load_settings(cwd=None):
     """Return (settings, sources, problems). sources maps each key to where its value came from.
     settings["guard_paths"] lists (key, path) from every layer, for guarded_roots."""
     problems = []
-    # Each layer lists its new-name file first, then the 0.1.0 file; both are read, so the old file's guarded
-    # folders still add up and a value is taken from the old file only when the new one doesn't set it.
+    # Order: the project's new file, the user's new file, then the 0.1.0 files (project, user). Every file is read,
+    # so the old files' guarded folders still add up, and an old file's other values count only where neither new
+    # file sets them.
+    project_new, project_old = project_config_paths(cwd)
+    user_paths = _user_config_paths()
+    ordered = [("project file ", project_new), ("user file ", user_paths[0]), ("project file ", project_old)]
+    ordered += [("user file ", p) for p in user_paths[1:]]
     project_labels = set()
     layers = []
-    for path in project_config_paths(cwd):
-        label = "project file " + path
-        project_labels.add(label)
+    for kind, path in ordered:
+        label = kind + path
+        if kind == "project file ":
+            project_labels.add(label)
         layers.append((label, _read_json(path, problems)))
-    for path in _user_config_paths():
-        layers.append(("user file " + path, _read_json(path, problems)))
     for label, data in layers:
         if label in project_labels:
             for key in UNTRUSTED_IN_PROJECT:

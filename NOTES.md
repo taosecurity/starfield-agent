@@ -255,3 +255,10 @@ When the wrap-up is done, rename everything in one pass:
   - A Bash backslash inside an option name (`\--log`, `--lo\g`) hides an output option, because Bash drops the backslash. Nobody writes that by accident.
   - `sf-mod-check triage` with no `--out` writes beside its input when the input is not inside a game install, for example a plugin in an `extra_guarded` folder.
   - Nit (in loop-added code): the shortening rule reads `--d` (argparse's short form of `--data`) as `--dest`, so it refuses a read-only command. This only over-refuses.
+
+## 0.2.1 security-review round 1 (2026-11-23)
+
+- Round 1 (v0.2.0..a2ce115) found 0 blocking. No change in the range newly lets a writing command into a guarded folder; the newly listed read-only commands (sf-mod-check `diff` and `gap`, sf-save-reader's reading commands, sf-pex-tools `dump` and `where`, sf-papyrus-ref `list` and `data`, `--version`) were checked against each tool's help and source, and they write only through output options the guard catches. No command injection, deserialization, path traversal or private names were found. No code changed.
+- Not fixed (not blocking, unusual spellings; a fix would need two more review rounds):
+  - `sf-test-plan logs <report> --out <elsewhere> --out ""` passes the guard, because `has_out` (`hooks\guard_game.py` line 222) stays True after the first `--out`, while argparse keeps the last one, so the tool writes `<report>.marks.json` beside the report (proven with sf-test-plan 0.4.0 on a scratch report). It only adds a new JSON file and needs `--out` given twice with the last one empty. v0.2.0 let every `sf-test-plan logs` through, so this is not a regression. Possible later fix: let the last output option decide `has_out`, or refuse a repeated `--out`.
+  - Pre-existing: a Bash backslash before an ordinary letter inside a path (`--out .../Dat\a/x.txt`) hides the guarded name, because the guard reads `\` as a folder separator while Bash drops it. The same kind as `\--log` from round 4. Possible later fix: in Bash, refuse an unquoted backslash before a letter or digit when a command has an output option.

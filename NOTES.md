@@ -242,3 +242,8 @@ When the wrap-up is done, rename everything in one pass:
 ## 0.2.1 code-review round 2 (2026-11-23)
 
 - Round 2 (v0.2.0..dbeed07) found 2 blocking holes, both in code round 1 added: a PowerShell path ending in `\` before an option (`C:\Mods\ --out <Data>`) joined the next option into its word, and `sf-test-plan logs` counted any output option (`--log`) as `--out`. Two rounds in a row found most of their findings in loop-added code, so the fix simplifies: `words()` no longer keeps a backslash-escaped space inside a word and `value_candidates()` is gone; a command with an output option and a backslash before a space is refused instead (quote the path). Cheap pre-existing holes fixed too: `-o"path"` attached and `--out-dir`-style names. `--json` stays a flag of its own (no public tool has `--json-out` that we know of).
+
+## 0.2.1 code-review round 3 (2026-11-23)
+
+- Round 3 (v0.2.0..940cf71) found 2 blocking: (1) round 2's `words()` pattern read Bash's escaped `\"` as the start of a quoted string, so `\" --out <Data>/y.txt \"` hid the output option (v0.2.0 refused it; loop-added); (2) `sf-test-plan logs ... --out ""` counted as naming a marks file, though the tool then writes beside the report. A pre-existing hole of the same kind as (1): `\"` could hide a `;` and a second command (`cat <Data>/a \"; rm -rf <Data>/x; echo \"`). Fixed by removing a path, not adding parsing: a command that names a guarded place and has a backslash before a quote is refused outright; an empty `--out` value doesn't count. Tests for both fail on the old guard.
+- Not fixed (not blocking): stacked short flags with `o` (`-qo<path>`; no public tool is known to take it), and the shortening rule refusing a few read-only prefixes such as `--js` (over-refusal only).

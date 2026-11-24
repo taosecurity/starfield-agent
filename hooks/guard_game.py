@@ -216,8 +216,10 @@ def part_is_read_only(part, cwd, roots):
                 if "\\ " in unquoted:
                     return ("it has an output option and a backslash before a space, which the guard can't read "
                             "the same way in every shell; put paths with spaces in quotes instead")
-                has_out = has_out or (len(key) > 2 and "--out".startswith(key.lower()))
                 value = inline or (args[idx + 1] if idx + 1 < len(args) else "")
+                # an empty --out ("" or --out=) falls back to the default beside the report, so it doesn't count
+                named_value = inline if "=" in a else value
+                has_out = has_out or (len(key) > 2 and "--out".startswith(key.lower()) and bool(named_value.strip()))
                 if value and cfg.guarded_reason(cfg.norm_path(value, cwd), roots):
                     return f"its {key} option points into a guarded folder"
         # `sf-test-plan logs <report>` writes <report>.marks.json beside the report unless --out says where.
@@ -330,6 +332,12 @@ def check_shell(command, cwd, roots):
     if not named and not cwd_reason:
         return
     where = ", ".join(named) if named else f"{cwd_reason} (the working folder)"
+    # A backslash before a quote is an escaped quote in Bash but a plain backslash and a quote in PowerShell, so
+    # the guard can't tell where quoted text starts and ends; refuse rather than guess.
+    if re.search(r"\\[\"']", command):
+        refuse(f"refused a command that names {where} and has a backslash before a quote, which the guard can't "
+               "read the same way in every shell. Drop the backslash (a folder path needs no trailing \\ before "
+               "its closing quote).")
     parts, flags = split_command(command)
     if "subst" in flags:
         refuse(f"refused a command that names {where} and runs a command inside it ($(...), backticks or <(...)), "

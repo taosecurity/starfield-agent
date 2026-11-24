@@ -408,6 +408,17 @@ class ReviewFixes(GuardCase):
         self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --log C:\\x.log'))
         self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --ou C:\\Plans\\m.json'))
         self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs --help "{STEAM_DATA}"'))
+        # an empty --out falls back to the default beside the report
+        self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out ""'))
+        self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out= C:\\x'))
+
+    def test_backslash_before_quote_refused(self):
+        """Bash reads \\" as an escaped quote, so it could hide an output option or a separator from the guard."""
+        data = STEAM_DATA.replace("\\", "/")
+        self.refused("Bash", self.bash(f'sf-mod-check check C:/XboxGames/Starfield/Content/Data/a.esm \\" --out C:/XboxGames/Starfield/Content/Data/y.txt \\"'))
+        self.refused("Bash", self.bash(f'cat "{data}/a.txt" \\"; rm -rf "{data}/x"; echo \\"'))
+        self.refused("PowerShell", self.bash(f'ls "{STEAM_DATA}\\"'))
+        self.allowed("PowerShell", self.bash(f'ls "{STEAM_DATA}"'))
 
     def test_project_file_cannot_unguard_user_install(self):
         with open(self.user_config, "w", encoding="utf-8") as f:

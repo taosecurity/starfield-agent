@@ -26,7 +26,8 @@ The guard still refuses an extraction from the game's Data folder, and now lets 
 - `sf-save-health solo --reports <folder>` can no longer point its reports into a guarded folder.
 - A command that names a guarded folder and has an output option is refused when it also has a backslash before a space (Bash's `My\ Games`, or a PowerShell path ending in `\`), because the shells read that differently. Put paths with spaces in quotes instead.
 - A shortened output option that Python tools accept (`--lo` for `--log`, `--ou` for `--out`), an option named `--out...` (`--out-dir`) and `-o` with its value attached (`-o"C:\x.txt"`) are now checked like the full option.
-- `sf-test-plan logs <report>` writes its marks file beside the report, so the guard lets it read a guarded folder only when `--out` names a file somewhere else.
+- `sf-test-plan logs <report>` writes its marks file beside the report, so the guard lets it read a guarded folder only when `--out` names a file somewhere else (an empty `--out ""` doesn't count).
+- A command that names a guarded folder and has a backslash before a quote (`\"`) is refused. Bash reads it as an escaped quote and PowerShell doesn't, so it could hide an output option or a second command from the guard. A folder path needs no `\` before its closing quote.
 
 ## 0.2.0 (2026-11-21)
 

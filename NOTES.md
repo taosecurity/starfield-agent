@@ -237,7 +237,7 @@ When the wrap-up is done, rename everything in one pass:
 - The setup table's checks were run against the released downloads: sf-cut-check 0.2.0, sf-pex-tools 0.1.0 (both scripts), sf-papyrus-ref 0.2.3 and sf-log-collector 2.0.1 pass (exit 0), as the others did in step 1. BuildKit has no local copy to check; its row needs a builder project.
 - The guard was run with 24 commands taken from the tools' own `--help` (full paths with spaces, PowerShell's `&`, the sf-pex-tools script names) and behaves as expected.
 - Fixed: `--opt="a path with spaces"` was split at the space, so neither the option check nor the path scan saw the real path; `sf-save-reader extract` (writes its second file) was allowed because sf-save-reader took any arguments; `sf-save-health solo --reports` was not an output option. A test covers all three and fails on the old guard.
-- `sf-save-health solo` with no `--reports` writes `.\sf-save-health-reports` in the working folder; a run from inside the saves folder is already refused by the working-folder rule (any tool but the plain commands, `cd` included), so this needs no fix. sf-papyrus-ref's read-only `diff` and `compare` are not on the list, so they are refused (safe). DESIGN.md's skill table still names older tool versions; it records what each skill was written against.
+- `sf-save-health solo` with no `--reports` writes `.\sf-save-health-reports` in the working folder; a run from inside the saves folder is refused by the working-folder rule (any tool but the plain commands, `cd` included), so this needs no fix. Exception found in code-review round 4: a `cd` path written with a backslash before each space (`My\ Games`) is split, so the guard misses that working folder (see "0.2.1 code-review round 4"). sf-papyrus-ref's read-only `diff` and `compare` are not on the list, so they are refused (safe). DESIGN.md's skill table still names older tool versions; it records what each skill was written against.
 
 ## 0.2.1 code-review round 2 (2026-11-23)
 
@@ -247,3 +247,11 @@ When the wrap-up is done, rename everything in one pass:
 
 - Round 3 (v0.2.0..940cf71) found 2 blocking: (1) round 2's `words()` pattern read Bash's escaped `\"` as the start of a quoted string, so `\" --out <Data>/y.txt \"` hid the output option (v0.2.0 refused it; loop-added); (2) `sf-test-plan logs ... --out ""` counted as naming a marks file, though the tool then writes beside the report. A pre-existing hole of the same kind as (1): `\"` could hide a `;` and a second command (`cat <Data>/a \"; rm -rf <Data>/x; echo \"`). Fixed by removing a path, not adding parsing: a command that names a guarded place and has a backslash before a quote is refused outright; an empty `--out` value doesn't count. Tests for both fail on the old guard.
 - Not fixed (not blocking): stacked short flags with `o` (`-qo<path>`; no public tool is known to take it), and the shortening rule refusing a few read-only prefixes such as `--js` (over-refusal only).
+
+## 0.2.1 code-review round 4 (2026-11-23)
+
+- Round 4 (v0.2.0..cacb687) found 0 blocking: 3 pre-existing holes and 1 nit, so no code changed. Not fixed, all unusual spellings or setups:
+  - A Bash `cd` into the saves folder written with escaped spaces (`cd .../My\ Games/Starfield/Saves && sf-save-health solo x.zip`) is split by `words()`, so the working-folder rule misses it. Quoting the path, the usual spelling, is caught. Possible later fix: refuse a `cd` part with a backslash before a space when a guarded place is named.
+  - A Bash backslash inside an option name (`\--log`, `--lo\g`) hides an output option, because Bash drops the backslash. Nobody writes that by accident.
+  - `sf-mod-check triage` with no `--out` writes beside its input when the input is not inside a game install, for example a plugin in an `extra_guarded` folder.
+  - Nit (in loop-added code): the shortening rule reads `--d` (argparse's short form of `--data`) as `--dest`, so it refuses a read-only command. This only over-refuses.

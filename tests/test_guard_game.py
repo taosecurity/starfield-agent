@@ -355,10 +355,12 @@ class ReviewFixes(GuardCase):
         """sf-pex-tools' own commands (pex_compare.py, ba2_extract.py) and the new --version words may read the Data folder."""
         self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex"'))
         self.allowed("Bash", self.bash(f'python -I pex_compare.py compare "{STEAM_DATA}\\a.ba2" "{STEAM_DATA}\\b.ba2"'))
-        self.allowed("Bash", self.bash("python -I ba2_extract.py where"))
-        self.allowed("Bash", self.bash("sf-save-health --version"))
-        self.allowed("Bash", self.bash("python -I sf_test_plan.py --version"))
-        self.allowed("Bash", self.bash("python -I sf_papyrus_ref.py list"))
+        # each names a guarded path, so the read-only table (not the no-guarded-path shortcut) decides
+        self.allowed("Bash", self.bash(f'python -I ba2_extract.py where --data "{STEAM_DATA}"'))
+        self.allowed("Bash", self.bash(f'sf-save-health --version "{STEAM_DATA}"'))
+        self.allowed("Bash", self.bash(f'python -I sf_test_plan.py --version "{STEAM_DATA}"'))
+        self.allowed("Bash", self.bash(f'python -I sf_papyrus_ref.py list "{STEAM_DATA}"'))
+        self.refused("Bash", self.bash(f'python -I ba2_extract.py wherever "{STEAM_DATA}"'))
         self.refused("Bash", self.bash(f'python -I ba2_extract.py extract "{STEAM_DATA}\\x.ba2"'))
         self.refused("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --out "{STEAM_DATA}\\y.txt"'))
 
@@ -374,6 +376,26 @@ class ReviewFixes(GuardCase):
         # --opt="a path with spaces" is one word, so its value is checked like --opt "a path with spaces"
         self.refused("Bash", self.bash(f'python -I pex_compare.py dump C:\\Mods\\x.pex --out="{STEAM_DATA}\\y.txt"'))
         self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --out="C:\\My Reports\\y.txt"'))
+
+    def test_escaped_spaces_and_short_options_checked(self):
+        """Bash's My\\ Games keeps the path whole, and argparse's --lo / --ou shortenings count as --log / --out."""
+        self.env["SFMOD_SAVES_DIR"] = SAVES
+        saves_esc = SAVES.replace("\\", "/").replace(" ", "\\ ")
+        data_esc = STEAM_DATA.replace("\\", "/").replace(" ", "\\ ").replace("(", "\\(").replace(")", "\\)")
+        self.refused("Bash", self.bash(f"sf-save-health solo C:/a.zip --reports {saves_esc}/r"))
+        self.refused("Bash", self.bash(f"sf-mod-check diff C:/a.esm C:/b.esm --out {saves_esc}/r.txt"))
+        self.refused("Bash", self.bash(f"sf-mod-check check C:/a.esm --log {data_esc}/l.txt"))
+        self.allowed("Bash", self.bash(f"sf-save-reader quests {saves_esc}/a.sfs"))
+        self.refused("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --lo "{STEAM_DATA}\\l.txt"'))
+        self.refused("Bash", self.bash(f'python -I sf_papyrus_ref.py data "{STEAM_DATA}" --ou="{STEAM_DATA}\\l.txt"'))
+        self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --lo C:\\Logs\\l.txt'))
+        self.allowed("Bash", self.bash(f'python -I sf_papyrus_ref.py check "{STEAM_DATA}\\Scripts" --json'))
+
+    def test_test_plan_logs_needs_out(self):
+        """sf-test-plan logs writes <report>.marks.json beside the report unless --out names a file."""
+        self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json"'))
+        self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out C:\\Plans\\r.marks.json'))
+        self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out "{STEAM_DATA}\\m.json"'))
 
     def test_project_file_cannot_unguard_user_install(self):
         with open(self.user_config, "w", encoding="utf-8") as f:

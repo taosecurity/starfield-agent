@@ -102,7 +102,7 @@ def split_command(command):
             quote = c
             buf.append(c)
         elif c == "\\" and i + 1 < n and command[i + 1] in " \n":
-            buf.append(" " if command[i + 1] == " " else "")
+            buf.append("\\ " if command[i + 1] == " " else "")   # words() keeps an escaped space inside its word
             i += 1
         elif c in ";\n|&":
             if c == "&" and buf and buf[-1] == ">":      # 2>&1 and >& are redirections, not separators
@@ -134,12 +134,35 @@ def has_redirect(part):
 
 def words(part):
     """Split one part into words, keeping quoted text together and removing the quotes. A word may join quoted
-    and plain pieces, as the shells do: --out="C:\\My Games\\x" is one word, --out=C:\\My Games\\x."""
+    and plain pieces, as the shells do: --out="C:\\My Games\\x" is one word, --out=C:\\My Games\\x. A Bash
+    escaped space (My\\ Games) stays inside its word as a plain space."""
     out = []
-    for m in re.finditer(r"(?:\"[^\"]*\"|'[^']*'|[^\s\"'])+|\S+", part):
-        out.append(re.sub(r"\"([^\"]*)\"|'([^']*)'", lambda q: q.group(1) if q.group(1) is not None else q.group(2),
-                          m.group(0)))
+    for m in re.finditer(r"(?:\"[^\"]*\"|'[^']*'|\\ |[^\s\"'])+|\S+", part):
+        w = re.sub(r"\"([^\"]*)\"|'([^']*)'|\\ ",
+                   lambda q: " " if q.group(0) == "\\ " else (q.group(1) if q.group(1) is not None else q.group(2)),
+                   m.group(0))
+        out.append(w)
     return out
+
+
+def output_option(key):
+    """True when an option names where a command writes. Python's argparse also takes any unique shortening of
+    a long option (--lo for --log, --ou for --out), so a long option that starts one of OUTPUT_OPTIONS counts."""
+    key = key.lower()
+    if key in OUTPUT_OPTIONS:
+        return True
+    if key in ("--json",):   # a real flag of its own (sf-papyrus-ref check --json), not a shortened --json-out
+        return False
+    return key.startswith("--") and len(key) > 2 and any(o.startswith(key) for o in OUTPUT_OPTIONS
+                                                         if o.startswith("--"))
+
+
+def value_candidates(value):
+    """The paths an output value may mean: as written, with Bash escapes removed (My\\ Games, \\(x86\\)), and each
+    space-separated piece (a PowerShell path ending in a backslash before a space)."""
+    found = {value, re.sub(r"\\([ ()&;'\"])", r"\1", value)}
+    found.update(p for p in value.split(" ") if p)
+    return found
 
 
 def program_and_args(ws):
@@ -185,12 +208,17 @@ def part_is_read_only(part, cwd, roots):
         first = next((a for a in args if not a.startswith("-") or a in ("--version", "--help", "-h")), "")
         if modes is not None and first.lower() not in modes:
             return f"`{(name + ' ' + first).strip()}` is not one of its read-only modes"
+        has_output = False
         for idx, a in enumerate(args):
             key, _, inline = a.partition("=")
-            if key.lower() in OUTPUT_OPTIONS:
+            if output_option(key):
+                has_output = True
                 value = inline or (args[idx + 1] if idx + 1 < len(args) else "")
-                if value and cfg.guarded_reason(cfg.norm_path(value, cwd), roots):
+                if value and any(cfg.guarded_reason(cfg.norm_path(v, cwd), roots) for v in value_candidates(value)):
                     return f"its {key} option points into a guarded folder"
+        # `sf-test-plan logs <report>` writes <report>.marks.json beside the report unless --out says where.
+        if name == "sf-test-plan" and first.lower() == "logs" and not has_output:
+            return "`sf-test-plan logs` writes its marks file beside the report unless --out names a file"
         return None
     return f"'{name or part}' is not on the guard's read-only list"
 

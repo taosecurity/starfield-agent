@@ -19,6 +19,12 @@ The guard still refuses an extraction from the game's Data folder, and now lets 
     Copy the file in yourself or install it with your mod manager; the agent only reads these folders. To guard more folders or point at a moved install, see the starfield-agent README, "Settings".
     exit 2
 
+### Fixed
+
+- The guard refused a write into a guarded folder only when the output option and its folder were two words. It now reads `--out="C:\My Games\..."` as one word, as the shells do, so a quoted path with spaces after `=` is checked too.
+- `sf-save-reader extract <save> <out.bin>` writes a file, so the guard no longer lets it write into the saves folder; the reading commands (`dump`, `walk`, `records`, `quests`, `compare`) still work there.
+- `sf-save-health solo --reports <folder>` can no longer point its reports into a guarded folder.
+
 ## 0.2.0 (2026-11-21)
 
 ### What's new

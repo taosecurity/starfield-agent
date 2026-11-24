@@ -43,7 +43,8 @@ READ_ONLY_PLAIN = {
 READ_ONLY_TOOLS = {
     "sf-mod-check": {"check", "conflict", "triage", "release", "diff", "gap", "--version", "--help", "-h"},
     "sf-save-health": {"check", "solo", "--version", "--help", "-h"},
-    "sf-save-reader": None,
+    # `sf-save-reader extract <save> <out.bin>` writes its second file, so it is not listed
+    "sf-save-reader": {"dump", "walk", "records", "quests", "compare", "--version", "--help", "-h"},
     "sf-cut-check": {"find", "scan", "why", "--version", "--help", "-h"},
     "sf-load-order": None,
     "sf-patch-day": {"dlls", "drift", "--version", "--help", "-h"},
@@ -56,7 +57,7 @@ READ_ONLY_TOOLS = {
     "sf-log-collector": {"zip", "--version", "--help", "-h"},
 }
 # Options whose value is where a command writes. A read-only command may read a guarded path, never write to one.
-OUTPUT_OPTIONS = {"--out", "-o", "--output", "--log", "--report", "--state", "--dest", "--to", "--save",
+OUTPUT_OPTIONS = {"--out", "-o", "--output", "--log", "--report", "--reports", "--state", "--dest", "--to", "--save",
                   "-outfile", "--json-out", "--html", "--csv"}
 # Shell words that change files no matter what follows (checked so the message can name them).
 WRITERS_PS = re.compile(r"\b(out-file|set-content|add-content|tee-object|new-item|copy-item|move-item|"
@@ -132,10 +133,12 @@ def has_redirect(part):
 
 
 def words(part):
-    """Split one part into words, keeping quoted text together and removing the quotes."""
+    """Split one part into words, keeping quoted text together and removing the quotes. A word may join quoted
+    and plain pieces, as the shells do: --out="C:\\My Games\\x" is one word, --out=C:\\My Games\\x."""
     out = []
-    for m in re.finditer(r"\"([^\"]*)\"|'([^']*)'|(\S+)", part):
-        out.append(next(g for g in m.groups() if g is not None))
+    for m in re.finditer(r"(?:\"[^\"]*\"|'[^']*'|[^\s\"'])+|\S+", part):
+        out.append(re.sub(r"\"([^\"]*)\"|'([^']*)'", lambda q: q.group(1) if q.group(1) is not None else q.group(2),
+                          m.group(0)))
     return out
 
 

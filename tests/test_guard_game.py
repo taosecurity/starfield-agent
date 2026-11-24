@@ -362,6 +362,19 @@ class ReviewFixes(GuardCase):
         self.refused("Bash", self.bash(f'python -I ba2_extract.py extract "{STEAM_DATA}\\x.ba2"'))
         self.refused("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --out "{STEAM_DATA}\\y.txt"'))
 
+    def test_save_tools_never_write_into_saves(self):
+        """sf-save-reader extract writes a file and sf-save-health solo --reports writes a folder: never into the saves."""
+        self.env["SFMOD_SAVES_DIR"] = SAVES
+        self.allowed("Bash", self.bash(f'sf-save-reader quests "{SAVES}\\a.sfs" --data --details'))
+        self.allowed("Bash", self.bash(f'sf-save-reader compare "{SAVES}\\a.sfs" "{SAVES}\\b.sfs"'))
+        self.allowed("Bash", self.bash(f'sf-save-health solo --before "{SAVES}\\a.sfs" --after "{SAVES}\\b.sfs" --reports C:\\Reports'))
+        self.refused("Bash", self.bash(f'sf-save-reader extract "{SAVES}\\a.sfs" "{SAVES}\\a.bin"'))
+        self.refused("Bash", self.bash(f'sf-save-health solo C:\\Logs\\StarfieldLogs-1.zip --reports "{SAVES}\\r"'))
+        self.refused("Bash", self.bash(f'sf-save-health solo C:\\Logs\\StarfieldLogs-1.zip --reports="{SAVES}\\r"'))
+        # --opt="a path with spaces" is one word, so its value is checked like --opt "a path with spaces"
+        self.refused("Bash", self.bash(f'python -I pex_compare.py dump C:\\Mods\\x.pex --out="{STEAM_DATA}\\y.txt"'))
+        self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --out="C:\\My Reports\\y.txt"'))
+
     def test_project_file_cannot_unguard_user_install(self):
         with open(self.user_config, "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"G:\Games\Starfield", "extra_guarded": [r"D:\MO2\overwrite"]}, f)

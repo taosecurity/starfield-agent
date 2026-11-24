@@ -262,3 +262,7 @@ When the wrap-up is done, rename everything in one pass:
 - Not fixed (not blocking, unusual spellings; a fix would need two more review rounds):
   - `sf-test-plan logs <report> --out <elsewhere> --out ""` passes the guard, because `has_out` (`hooks\guard_game.py` line 222) stays True after the first `--out`, while argparse keeps the last one, so the tool writes `<report>.marks.json` beside the report (proven with sf-test-plan 0.4.0 on a scratch report). It only adds a new JSON file and needs `--out` given twice with the last one empty. v0.2.0 let every `sf-test-plan logs` through, so this is not a regression. Possible later fix: let the last output option decide `has_out`, or refuse a repeated `--out`.
   - Pre-existing: a Bash backslash before an ordinary letter inside a path (`--out .../Dat\a/x.txt`) hides the guarded name, because the guard reads `\` as a folder separator while Bash drops it. The same kind as `\--log` from round 4. Possible later fix: in Bash, refuse an unquoted backslash before a letter or digit when a command has an output option.
+
+## 0.2.1 released
+
+0.2.1 released on 2026-11-23: main pushed (f794a96), annotated tag v0.2.1 pushed, GitHub release v0.2.1 is Latest. release_check.py: 2 of 4 passed; the two FAILs are expected (the repo has no CI workflow, and the release has no assets, as 0.2.0 has none).

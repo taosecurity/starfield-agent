@@ -391,11 +391,23 @@ class ReviewFixes(GuardCase):
         self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --lo C:\\Logs\\l.txt'))
         self.allowed("Bash", self.bash(f'python -I sf_papyrus_ref.py check "{STEAM_DATA}\\Scripts" --json'))
 
+    def test_backslash_space_attached_and_long_output_options(self):
+        """A PowerShell path ending in a backslash can't hide the next option; -o"x" and --out-dir are checked."""
+        self.refused("PowerShell", self.bash(f'sf-mod-check check C:\\Mods\\ --out "{STEAM_DATA}\\y.txt"'))
+        self.refused("PowerShell", self.bash(f'sf-mod-check check "{STEAM_DATA}\\a.esm" C:\\Mods\\ -o "{STEAM_DATA}\\y.txt"'))
+        self.refused("Bash", self.bash(f'sf-mod-check check C:/a.esm -o"{STEAM_DATA}\\y.txt"'))
+        self.refused("Bash", self.bash(f'sf-mod-check check C:/a.esm --out-dir "{STEAM_DATA}"'))
+        self.allowed("Bash", self.bash(f'sf-mod-check check "{STEAM_DATA}\\a.esm" -o"C:\\Reports\\y.txt"'))
+
     def test_test_plan_logs_needs_out(self):
         """sf-test-plan logs writes <report>.marks.json beside the report unless --out names a file."""
         self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json"'))
         self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out C:\\Plans\\r.marks.json'))
         self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --out "{STEAM_DATA}\\m.json"'))
+        # only --out says where the marks file goes; another output option does not
+        self.refused("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --log C:\\x.log'))
+        self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs "{STEAM_DATA}\\r.json" --ou C:\\Plans\\m.json'))
+        self.allowed("Bash", self.bash(f'python -I sf_test_plan.py logs --help "{STEAM_DATA}"'))
 
     def test_project_file_cannot_unguard_user_install(self):
         with open(self.user_config, "w", encoding="utf-8") as f:

@@ -24,8 +24,8 @@ The guard still refuses an extraction from the game's Data folder, and now lets 
 - The guard refused a write into a guarded folder only when the output option and its folder were two words. It now reads `--out="C:\My Games\..."` as one word, as the shells do, so a quoted path with spaces after `=` is checked too.
 - `sf-save-reader extract <save> <out.bin>` writes a file, so the guard no longer lets it write into the saves folder; the reading commands (`dump`, `walk`, `records`, `quests`, `compare`) still work there.
 - `sf-save-health solo --reports <folder>` can no longer point its reports into a guarded folder.
-- An output path written with Bash's escaped spaces (`My\ Games`, `Program\ Files\ \(x86\)`) is now checked as one path, so it can't point a read-only tool's output into a guarded folder.
-- A shortened output option that Python tools accept (`--lo` for `--log`, `--ou` for `--out`) is now checked like the full name.
+- A command that names a guarded folder and has an output option is refused when it also has a backslash before a space (Bash's `My\ Games`, or a PowerShell path ending in `\`), because the shells read that differently. Put paths with spaces in quotes instead.
+- A shortened output option that Python tools accept (`--lo` for `--log`, `--ou` for `--out`), an option named `--out...` (`--out-dir`) and `-o` with its value attached (`-o"C:\x.txt"`) are now checked like the full option.
 - `sf-test-plan logs <report>` writes its marks file beside the report, so the guard lets it read a guarded folder only when `--out` names a file somewhere else.
 
 ## 0.2.0 (2026-11-21)

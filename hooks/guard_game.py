@@ -41,17 +41,18 @@ READ_ONLY_PLAIN = {
     "format-table": None, "format-list": None, "out-null": None, "out-string": None,
 }
 READ_ONLY_TOOLS = {
-    "sf-mod-check": {"check", "conflict", "triage", "release", "--version", "--help", "-h"},
-    "sf-save-health": {"check", "solo", "--help", "-h"},
+    "sf-mod-check": {"check", "conflict", "triage", "release", "diff", "gap", "--version", "--help", "-h"},
+    "sf-save-health": {"check", "solo", "--version", "--help", "-h"},
     "sf-save-reader": None,
     "sf-cut-check": {"find", "scan", "why", "--version", "--help", "-h"},
     "sf-load-order": None,
     "sf-patch-day": {"dlls", "drift", "--version", "--help", "-h"},
-    "pex-compare": {"compare", "--version", "--help", "-h"},
-    "ba2-extract": {"diff", "list", "--version", "--help", "-h"},
-    "sf-papyrus-ref": {"check", "script", "lookup", "list-flag", "--version", "--help", "-h"},
+    # sf-pex-tools' own commands (pex_compare.py, ba2_extract.py); `ba2_extract.py extract` writes, so it is not listed
+    "pex-compare": {"compare", "dump", "--version", "--help", "-h"},
+    "ba2-extract": {"diff", "list", "where", "--version", "--help", "-h"},
+    "sf-papyrus-ref": {"check", "script", "lookup", "list", "data", "--version", "--help", "-h"},
     "papyrus-log-check": None,
-    "sf-test-plan": {"logs", "check", "--help", "-h"},
+    "sf-test-plan": {"logs", "check", "--version", "--help", "-h"},
     "sf-log-collector": {"zip", "--version", "--help", "-h"},
 }
 # Options whose value is where a command writes. A read-only command may read a guarded path, never write to one.

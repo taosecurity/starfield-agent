@@ -18,12 +18,12 @@ From source to a zip the user installs with their mod manager. The order matters
    - text the player must see is a Message record shown with `Show()`, not `Debug.Notification` or `Debug.MessageBox`;
    - no vanilla record edits unless the design needs them;
    - the plugin name is `<ModName>.esm` and doesn't end in an official plugin's name (`-ShatteredSpace.esm`, `-Constellation.esm`, `-Starfield.esm`, `-OldMars.esm`, `-SFBGS<nnn>.esm`) or start with `BlueprintShips-`;
-   - the builder uses BuildKit 0.4.2 (`PluginWriter.Write`, `IdLock` with a committed `ids.lock.json`);
+   - the builder uses BuildKit 0.5.0 (`PluginWriter.Write`, `IdLock` with a committed `ids.lock.json`);
    - the README says what the mod does, how to install and uninstall it, and how to turn on Papyrus logging (in `StarfieldCustom.ini` under `[Papyrus]`: `bEnableLogging=1`, `bEnableTrace=1`, `bLoadDebugInformation=1`; the log is `Documents\My Games\Starfield\Logs\Script\Papyrus.0.log`).
 
 ## Build
 
-4. **With sf-mod-build 0.1.1** (projects with `sfmod.json`):
+4. **With sf-mod-build 0.4.1** (projects with `sfmod.json`):
 
    ```
    sf-mod-build build
@@ -34,7 +34,7 @@ From source to a zip the user installs with their mod manager. The order matters
    **Without sf-mod-build** (a project with its own build script): run that script, and make sure it compiles with `-optimize` and without `-release`, writes the plugin outside the game's `Data` folder, packs scripts into `<ModName> - Main.ba2`, and zips the plugin, the archive, the README and the license, with no `.psc` files.
 
 5. **Checks, in this order.** Fix every ERROR, PROBLEM or FAIL before going on:
-   - `sf-mod-check check dist\<ModName>.esm` (sf-mod-check 0.9.0): the plugin is sound. Read each WARNING against what the builder meant to do.
+   - `sf-mod-check check dist\<ModName>.esm` (sf-mod-check 0.15.2): the plugin is sound. Read each WARNING against what the builder meant to do.
    - `sf-mod-check release <ModName>-<version>.zip`: the zip as a player gets it. Add `--profile house` to also fail on packaging rules (more than one plugin in a zip, `.psc` sources, a README with no mod name). An add-on's zip is checked together with its main mod's zip: `sf-mod-check release <Addon zip> <Main zip>`.
    - One plugin per zip: an add-on, patch or option gets its own zip, `<ModName>-<Part>-<version>.zip`. Mod managers install folders such as "Optional - ..." as they are, so plugins in them never load.
    - For Bethesda Creations only: set `"xbox": true` in `sfmod.json`, so the build also makes `creations-out\` with `<ModName> - Main_xbox.ba2`. Read every console warning (copied PC `.wem` audio is silent on consoles; `Debug` text never shows there). The Xbox archive never goes in the PC zip.

@@ -20,7 +20,7 @@ Bethesda's code and files belong to Bethesda. Sharing them in a repo, a release,
 2. Official Papyrus sources (`.psc` from the Creation Kit's script sources), even one file, even edited.
 3. Decompiled code of any kind: decompiled `.pex` scripts, decompiled game functions, pseudocode pasted from a decompiler.
 4. Ghidra or IDA projects and databases of the game (`*.gpr`, `*.rep`, `*.i64`), and anything exported from them other than symbol names.
-5. Caches made from Bethesda's sources, such as sf-papyrus-ref 0.1.0's local cache from `build-local`.
+5. Caches made from Bethesda's sources, such as sf-papyrus-ref 0.2.3's local cache from `build-local`.
 6. Saves and logs of other people, and your own only after reading them for names and paths.
 
 ## Steps before a commit, release or post

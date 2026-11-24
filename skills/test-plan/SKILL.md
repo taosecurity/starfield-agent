@@ -5,7 +5,7 @@ description: Write a test plan for a Starfield mod build with sf-test-plan - ste
 
 # Test plan
 
-A test plan says what to try in the game and what should happen, in an order a player can follow with a new character. sf-test-plan 0.2.0 turns it into one HTML page the tester ticks off; its `AGENTS.md` and `FORMAT.md` have the exact format.
+A test plan says what to try in the game and what should happen, in an order a player can follow with a new character. sf-test-plan 0.4.0 turns it into one HTML page the tester ticks off; its `AGENTS.md` and `FORMAT.md` have the exact format.
 
 ## Steps
 
@@ -26,7 +26,7 @@ A test plan says what to try in the game and what should happen, in an order a p
    - The debug option: one step turns on "Show Debug Messages (PC only)" in the mod's Gameplay Options group and checks a message appears.
    - Uninstall: the last group removes the mod and loads the save, when the mod is meant to be removable.
 
-4. **Log rules.** For each step the Papyrus log can prove, add `log: <id>` to the step and a rule with that id to `<ModName>.logrules.json`, the rule file papyrus-log-check 0.3.2 reads (sf-test-plan's `examples/Beacon.logrules.json` shows the shape): `mod`, `version`, `plugins`, `prefix`, an `expect` list (lines the step should cause, each with `id`, a regular expression `re`, a sample `show` and what it `means`) and a `forbid` list (lines that must never appear). A rule that sees nothing reports NOT SEEN, which means "not tested", not "failed".
+4. **Log rules.** For each step the Papyrus log can prove, add `log: <id>` to the step and a rule with that id to `<ModName>.logrules.json`, the rule file papyrus-log-check 0.4.2 reads (sf-test-plan's `examples/Beacon.logrules.json` shows the shape): `mod`, `version`, `plugins`, `prefix`, an `expect` list (lines the step should cause, each with `id`, a regular expression `re`, a sample `show` and what it `means`) and a `forbid` list (lines that must never appear). A rule that sees nothing reports NOT SEEN, which means "not tested", not "failed".
 
 5. **Check and build:**
 

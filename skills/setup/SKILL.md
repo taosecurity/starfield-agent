@@ -29,18 +29,18 @@ Finds the paths the other skills and the guard hooks need, and checks the tools.
 
    | Tool | Check | Needed for |
    |---|---|---|
-   | sf-mod-check 0.9.0 | `sf-mod-check --version` | checking plugins, conflicts, release zips, triage |
-   | sf-mod-build 0.1.1 | `sf-mod-build doctor` | building a mod from `sfmod.json` |
-   | BuildKit 0.4.2 | a builder's `dotnet list package` shows `Taosecurity.Starfield.BuildKit` | writing plugins with Mutagen |
+   | sf-mod-check 0.15.2 | `sf-mod-check --version` | checking plugins, conflicts, release zips, triage |
+   | sf-mod-build 0.4.1 | `sf-mod-build doctor` | building a mod from `sfmod.json` |
+   | BuildKit 0.5.0 | a builder's `dotnet list package` shows `Taosecurity.Starfield.BuildKit` | writing plugins with Mutagen |
    | sf-pex-tools 0.1.0 | `python -I pex_compare.py --version` in its folder | comparing scripts, reading archives |
-   | sf-load-order 0.1.1 | `sf-load-order.cmd --version` in its folder | load order checks |
-   | sf-cut-check 0.1.9 | `sf-cut-check --version` | cut-content lookups (optional) |
-   | sf-test-plan 0.2.0 | `python -I sf_test_plan.py --help` in its folder | test plans |
-   | sf-papyrus-ref 0.1.0 | `python -I sf_papyrus_ref.py lookup Debug.Notification --no-local` in its folder | Papyrus lookups and the MCP server |
-   | sf-patch-day 0.1.3 | `python -I sf-patch-day.py --version` in its folder | after a game update |
+   | sf-load-order 0.2.2 | `sf-load-order.cmd --version` in its folder | load order checks |
+   | sf-cut-check 0.2.0 | `sf-cut-check --version` | cut-content lookups (optional) |
+   | sf-test-plan 0.4.0 | `python -I sf_test_plan.py --version` in its folder | test plans |
+   | sf-papyrus-ref 0.2.3 | `python -I sf_papyrus_ref.py lookup Debug.Notification --no-local` in its folder | Papyrus lookups and the MCP server |
+   | sf-patch-day 0.2.2 | `python -I sf-patch-day.py --version` in its folder | after a game update |
    | sf-log-collector 2.0.1 | `Collect-StarfieldTestLogs.ps1` exists in its folder | gathering test logs |
-   | papyrus-log-check 0.3.2 | its `--version` | reading the Papyrus log |
-   | sf-save-health 0.7.1 | `sf-save-health --help` (exit 3 is expected; it has no `--version`, and every report's first line names the version) | save checks after a test |
+   | papyrus-log-check 0.4.2 | its `--version` | reading the Papyrus log |
+   | sf-save-health 0.7.4 | `sf-save-health --version` | save checks after a test |
    | sf-save-reader 0.1.3 | `sf-save-reader --version` | quest stages in saves |
 
    Also report `dotnet --list-sdks` (sf-mod-build and BuildKit need .NET SDK 9 or later) and `git --version`.

@@ -17,7 +17,7 @@ A test is only as good as what the log can prove. These rules make every mod's b
    EndFunction
    ```
 
-   Log facts with values (`Log("gave " + count + " credits, total " + total)`), not just "here". Each line a script writes can become a log rule for papyrus-log-check 0.3.2 and a log check in the test plan (`test-plan` skill).
+   Log facts with values (`Log("gave " + count + " credits, total " + total)`), not just "here". Each line a script writes can become a log rule for papyrus-log-check 0.4.2 and a log check in the test plan (`test-plan` skill).
 
 2. **A debug switch for on-screen messages.** The mod has its own Gameplay Options group with one option, "Show Debug Messages (PC only)", off by default, backed by a global variable the scripts read. On-screen debug text appears only when it is on:
 
@@ -32,11 +32,11 @@ A test is only as good as what the log can prove. These rules make every mod's b
    EndFunction
    ```
 
-   In a BuildKit 0.4.2 builder, `GameplayOptions.Debug(...)` makes the option (off by default) and `GameplayOptions.Group(...)` the mod's group; its README shows both. Console commands can't find a light plugin's quests or globals by name, so a console `set` command is no substitute for the option.
+   In a BuildKit 0.5.0 builder, `GameplayOptions.Debug(...)` makes the option (off by default) and `GameplayOptions.Group(...)` the mod's group; its README shows both. Console commands can't find a light plugin's quests or globals by name, so a console `set` command is no substitute for the option.
 
 3. **Text the player must see is a Message record**, shown with `Show()`. The `Debug` script does nothing on Xbox and PlayStation, so `Debug.Notification` and `Debug.MessageBox` are for debug text only. `Debug.Trace` and the debug switch stay in the mod; the README calls them PC only.
 
-4. **Never compile with `-release`.** It strips every `Debug` call, including the traces. Compile with `-optimize` (the `build-mod` skill and sf-mod-build 0.1.1 do).
+4. **Never compile with `-release`.** It strips every `Debug` call, including the traces. Compile with `-optimize` (the `build-mod` skill and sf-mod-build 0.4.1 do).
 
 5. **The README tells players how to turn on Papyrus logging.** Use this text:
 
@@ -57,7 +57,7 @@ A test is only as good as what the log can prove. These rules make every mod's b
 
 1. Search its `.psc` files for `Debug.Trace` and the prefix: every script should have at least one.
 2. Search for `Debug.Notification` and `Debug.MessageBox` outside the debug helper. Each one that the player needs to see becomes a Message record.
-3. Run sf-papyrus-ref 0.1.0 on the scripts: `python -I sf_papyrus_ref.py check "<mod folder>" --allow Debug.Trace`. It lists debug-only, beta-only and latent calls. For a Creations release add `--creations` (`release-check` skill).
+3. Run sf-papyrus-ref 0.2.3 on the scripts: `python -I sf_papyrus_ref.py check "<mod folder>" --allow Debug.Trace`. It lists debug-only, beta-only and latent calls. For a Creations release add `--creations` (`release-check` skill).
 4. Check the build settings for `-release` and the README for the logging section.
 
 Report each miss with the file and line, and the fix.

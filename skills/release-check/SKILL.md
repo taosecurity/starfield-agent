@@ -11,7 +11,7 @@ The last look before a mod goes public. The agent checks and reports; the user u
 
 1. **Confirm it is the current build.** The zip's name is `<ModName>-<version>.zip`, the version matches `NOTES.md` and the last commit, and the plugin inside has the same SHA-256 as the one just built (`build-mod` step 6). A release version is `1.0.0` or later, after the mod passed a test.
 
-2. **Run the release check** with sf-mod-check 0.9.0:
+2. **Run the release check** with sf-mod-check 0.15.2:
 
    ```
    sf-mod-check release <ModName>-<version>.zip --profile house
@@ -29,7 +29,7 @@ The last look before a mod goes public. The agent checks and reports; the user u
    - No `.psc` sources, saves, logs, game files or build folders in the zip (`game-code-rules` skill).
 
 6. **For Bethesda Creations, also:**
-   - Check the scripts with sf-papyrus-ref 0.1.0, so calls that do nothing on consoles count as errors:
+   - Check the scripts with sf-papyrus-ref 0.2.3, so calls that do nothing on consoles count as errors:
 
      ```
      python -I sf_papyrus_ref.py check "<mod folder>" --allow Debug.Trace --creations --json

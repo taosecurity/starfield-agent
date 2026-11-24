@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.1 (2026-11-23)
+
+### What's new
+
+The setup skill and the guard now match the current tools.
+
+- The setup skill checks sf-save-health with `sf-save-health --version` (new in sf-save-health 0.7.4) instead of `--help` with an exit code of 3. Its tool table and the README name the current release of every tool, and each check exits 0.
+- The skills now use the current commands of the tools they name, and the guard lets the commands of sf-pex-tools (`pex_compare.py dump`, `ba2_extract.py where`), sf-papyrus-ref (`list`, `data`), sf-mod-check (`diff`, `gap`) and the `--version` of sf-save-health and sf-test-plan read the game's folders. `ba2_extract.py extract` is still refused there, because it writes.
+- The new-mod skill now names the BuildKit version that sf-mod-build's template really pins (0.4.2).
+
+### Example
+
+The guard still refuses an extraction from the game's Data folder, and now lets the read-only commands through. This is its real output:
+
+    > python -I hooks/guard_game.py < extract-from-data.json
+    starfield-agent guard: refused a command that names the game's Data folder (Steam): in the part `python -I ba2_extract.py extract "C:/Program Files (x86)/Steam/steamapps/common/Starfield/Data/x.ba2"`, `ba2-extract extract` is not one of its read-only modes. Commands that name these folders may only read them.
+    Copy the file in yourself or install it with your mod manager; the agent only reads these folders. To guard more folders or point at a moved install, see the starfield-agent README, "Settings".
+    exit 2
+
 ## 0.2.0 (2026-11-21)
 
 ### What's new

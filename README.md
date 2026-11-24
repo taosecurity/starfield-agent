@@ -119,16 +119,16 @@ cover, on purpose, so install Python first.
 The skills call these free tools. None of them is needed to install the plugin; the `setup` skill tells you which
 ones are missing and how to get each one. Versions are the ones the skills were written against.
 
-- [sf-mod-check](https://github.com/taosecurity/sf-mod-check) 0.9.0: checks plugins, conflicts and release zips.
-- [sf-mod-build](https://github.com/taosecurity/sf-mod-build) 0.1.1 and [BuildKit](https://github.com/taosecurity/BuildKit) 0.4.2: build a mod.
+- [sf-mod-check](https://github.com/taosecurity/sf-mod-check) 0.15.2: checks plugins, conflicts and release zips.
+- [sf-mod-build](https://github.com/taosecurity/sf-mod-build) 0.4.1 and [BuildKit](https://github.com/taosecurity/BuildKit) 0.5.0: build a mod.
 - [sf-pex-tools](https://github.com/taosecurity/sf-pex-tools) 0.1.0: compares compiled scripts and reads archives.
-- [sf-load-order](https://github.com/taosecurity/sf-load-order) 0.1.1: checks a load order.
-- [sf-cut-check](https://github.com/taosecurity/sf-cut-check) 0.1.9: finds cut content (optional).
-- [sf-test-plan](https://github.com/taosecurity/sf-test-plan) 0.2.0: writes test plans.
-- [sf-papyrus-ref](https://github.com/taosecurity/sf-papyrus-ref) 0.1.0: Papyrus lookups and the MCP server.
-- [sf-patch-day](https://github.com/taosecurity/sf-patch-day) 0.1.3: checks mods after a game update.
-- [sf-log-collector](https://github.com/taosecurity/sf-log-collector) 2.0.1 and [papyrus-log-check](https://github.com/taosecurity/papyrus-log-check) 0.3.2: gather and read test logs.
-- [sf-save-health](https://github.com/taosecurity/sf-save-health) 0.7.1 and [sf-save-reader](https://github.com/taosecurity/sf-save-reader) 0.1.3: check saves after a test.
+- [sf-load-order](https://github.com/taosecurity/sf-load-order) 0.2.2: checks a load order.
+- [sf-cut-check](https://github.com/taosecurity/sf-cut-check) 0.2.0: finds cut content (optional).
+- [sf-test-plan](https://github.com/taosecurity/sf-test-plan) 0.4.0: writes test plans.
+- [sf-papyrus-ref](https://github.com/taosecurity/sf-papyrus-ref) 0.2.3: Papyrus lookups and the MCP server.
+- [sf-patch-day](https://github.com/taosecurity/sf-patch-day) 0.2.2: checks mods after a game update.
+- [sf-log-collector](https://github.com/taosecurity/sf-log-collector) 2.0.1 and [papyrus-log-check](https://github.com/taosecurity/papyrus-log-check) 0.4.2: gather and read test logs.
+- [sf-save-health](https://github.com/taosecurity/sf-save-health) 0.7.4 and [sf-save-reader](https://github.com/taosecurity/sf-save-reader) 0.1.3: check saves after a test.
 
 ## Words used here
 

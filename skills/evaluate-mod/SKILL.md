@@ -13,16 +13,16 @@ Read-only toward the mod and the game: nothing is installed, rebuilt or reported
 
 2. **Seen before?** Look in the user's projects for the mod's name: `NOTES.md` files, `originals\` folders, `PERMISSION.md`. If an older copy exists, this is an update (step 5); otherwise a first evaluation (steps 3 and 4).
 
-3. **First evaluation.** Run sf-mod-check 0.9.0's triage on the archive:
+3. **First evaluation.** Run sf-mod-check 0.15.2's triage on the archive:
 
    ```
    sf-mod-check triage "<download>.zip" --out "<work folder>\<ModName>\triage"
    ```
 
-   Open its `.html` report. It lists every file with its SHA-256, what the mod replaces in the game's own files, each plugin's masters, added and overridden records, ITMs, deleted records, official changes it undoes, its compiled scripts (what each calls, whether it logs) and its DLLs. Read the LOOK lines first and report them as "worth a look", never as faults. Then `sf-mod-check check <plugin> --data "<game>\Data"` for each plugin. For records worth a closer look, sf-cut-check 0.1.9's `find` and `why` (optional) say whether a record is cut content the game never uses.
+   Open its `.html` report. It lists every file with its SHA-256, what the mod replaces in the game's own files, each plugin's masters, added and overridden records, ITMs, deleted records, official changes it undoes, its compiled scripts (what each calls, whether it logs) and its DLLs. Read the LOOK lines first and report them as "worth a look", never as faults. Then `sf-mod-check check <plugin> --data "<game>\Data"` for each plugin. For records worth a closer look, sf-cut-check 0.2.0's `find` and `why` (optional) say whether a record is cut content the game never uses.
 
 4. **Overlap with the user's setup.**
-   - Load order: sf-load-order 0.1.1 on the user's order with the new mod in it (`sf-load-order.cmd`, or `--mo2 "<instance>"`, or `--vortex-loadorder "<exported file>"`) reports missing masters, known clashes, archive and loose-file overlap, and record conflicts.
+   - Load order: sf-load-order 0.2.2 on the user's order with the new mod in it (`sf-load-order.cmd`, or `--mo2 "<instance>"`, or `--vortex-loadorder "<exported file>"`) reports missing masters, known clashes, archive and loose-file overlap, and record conflicts.
    - Record conflicts in detail: `sf-mod-check conflict` (or `--plugins "<Plugins.txt>"`).
    - The user's own mods: which of their projects use records, scripts or files from this mod.
    - Permissions: the mod page's permission terms, and any `PERMISSION.md` the user already holds.

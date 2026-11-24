@@ -27,7 +27,7 @@ A rebuild is new work on top of another author's idea. Their permission and cred
 
 7. **Compare with the original.**
    - Scripts: `python -I pex_compare.py compare "<original> - Main.ba2" "dist\<ModName> - Main.ba2"` (sf-pex-tools 0.1.0) shows which scripts differ in meaning.
-   - Plugins: `sf-mod-check triage dist\<ModName>.esm` and `sf-mod-check triage <original plugin>` (sf-mod-check 0.9.0) side by side: records added, overridden, ITMs, official changes undone.
+   - Plugins: `sf-mod-check triage dist\<ModName>.esm` and `sf-mod-check triage <original plugin>` (sf-mod-check 0.15.2) side by side: records added, overridden, ITMs, official changes undone.
    - Check that every difference is one you planned.
 
 8. **Credit.** The README names the original author and links their mod, says what the rebuild changes, and repeats any condition from `PERMISSION.md`. Keep `PERMISSION.md` out of the release zip (`sf-mod-check release --profile house` flags it).

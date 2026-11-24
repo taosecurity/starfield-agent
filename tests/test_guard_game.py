@@ -351,6 +351,17 @@ class ReviewFixes(GuardCase):
         self.refused("Bash", self.bash(f'uniq "{STEAM_DATA}\\a.txt" "{STEAM_DATA}\\b.txt"'))
         self.refused("Bash", self.bash(f'ba2-extract extract "{STEAM_DATA}\\x.ba2"'))
 
+    def test_public_tool_commands_read_only(self):
+        """sf-pex-tools' own commands (pex_compare.py, ba2_extract.py) and the new --version words may read the Data folder."""
+        self.allowed("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex"'))
+        self.allowed("Bash", self.bash(f'python -I pex_compare.py compare "{STEAM_DATA}\\a.ba2" "{STEAM_DATA}\\b.ba2"'))
+        self.allowed("Bash", self.bash("python -I ba2_extract.py where"))
+        self.allowed("Bash", self.bash("sf-save-health --version"))
+        self.allowed("Bash", self.bash("python -I sf_test_plan.py --version"))
+        self.allowed("Bash", self.bash("python -I sf_papyrus_ref.py list"))
+        self.refused("Bash", self.bash(f'python -I ba2_extract.py extract "{STEAM_DATA}\\x.ba2"'))
+        self.refused("Bash", self.bash(f'python -I pex_compare.py dump "{STEAM_DATA}\\x.pex" --out "{STEAM_DATA}\\y.txt"'))
+
     def test_project_file_cannot_unguard_user_install(self):
         with open(self.user_config, "w", encoding="utf-8") as f:
             json.dump({"game_dir": r"G:\Games\Starfield", "extra_guarded": [r"D:\MO2\overwrite"]}, f)

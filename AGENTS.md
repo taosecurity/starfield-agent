@@ -1,4 +1,4 @@
-# AGENTS.md: starfield-agent 0.2.0
+# AGENTS.md: starfield-agent 0.2.1
 
 Instructions for an AI assistant that installs or uses this plugin. Plain numbered steps; every command here has been run once.
 

@@ -11,7 +11,7 @@ The tester played, quit the game and ran sf-log-collector 2.0.1, which writes on
 
 1. **Pick the right package.** The collector writes `Documents\StarfieldLogs\StarfieldLogs-<yyyyMMdd-HHmmss>-<note>.zip` (or the `-OutDir` folder the tester used). Take the newest one, and check that its time and note match the session the user described. If they don't match, ask before going on. If there is no package, tell the user how to make one (sf-log-collector's `AGENTS.md`, section 5): double-click `Collect-StarfieldTestLogs.cmd` after quitting the game, with `-IncludeSaves` or `-SavePair` when saves should be checked.
 
-2. **Run papyrus-log-check 0.3.2 first**, straight on the zip (it reads it in memory):
+2. **Run papyrus-log-check 0.4.2 first**, straight on the zip (it reads it in memory):
 
    ```
    python -I papyrus_log_check.py "<StarfieldLogs-....zip>" --rules "<Mod>.logrules.json" --out "<report folder>"
@@ -21,7 +21,7 @@ The tester played, quit the game and ran sf-log-collector 2.0.1, which writes on
 
 3. **Unpack the zip** into a new, empty scratch folder (never into the game or a repo) and read `manifest.json` first: the game, SFSE and plugin versions, the warnings, and the skipped files. A warning such as "No Papyrus.0.log found" means Papyrus logging was off (the `logging-rules` skill says how to turn it on), so every rule will be NOT SEEN.
 
-4. **The test plan's log checks.** If the mod has a test plan (`test-plan` skill), turn the log report into marks with sf-test-plan 0.2.0:
+4. **The test plan's log checks.** If the mod has a test plan (`test-plan` skill), turn the log report into marks with sf-test-plan 0.4.0:
 
    ```
    python -I sf_test_plan.py logs "<report folder>\logcheck-....json" --plan "<Mod>.testplan.md"
@@ -31,7 +31,7 @@ The tester played, quit the game and ran sf-log-collector 2.0.1, which writes on
 
 5. **By hand, only where needed.** For a mod with no rule file, search the unpacked `Papyrus.0.log` for the mod's prefix (for example `[MyMod]`) and for `error` lines that name its scripts. Read the lines around each FAIL. Read the crash logs and `events.txt` in the package for crashes during the session, and say which module the crash log blames. A crash log naming a DLL is a lead, not proof.
 
-6. **Saves, if the package has them.** Run sf-save-health 0.7.1 on the newest save, against the load order from the package:
+6. **Saves, if the package has them.** Run sf-save-health 0.7.4 on the newest save, against the load order from the package:
 
    ```
    sf-save-health check "<unpacked>\saves\<save>.sfs" --plugins "<unpacked>\appdata\Plugins.txt"

@@ -19,7 +19,7 @@ Makes a project that builds from the first day. Run the `setup` skill first if t
 
 3. **Check for similar mods.** Search Nexus Mods and Bethesda Creations for the idea. If one exists, tell the user and ask whether to build anyway, contribute, or drop it.
 
-4. **Make the project** with sf-mod-build 0.1.1 (its `AGENTS.md` has the details):
+4. **Make the project** with sf-mod-build 0.4.1 (its `AGENTS.md` has the details):
 
    ```
    dotnet new sfmod -n QuietOutposts --prefix QO --mod-author "Your Name"
@@ -28,7 +28,7 @@ Makes a project that builds from the first day. Run the `setup` skill first if t
    sf-mod-build doctor
    ```
 
-   The template's builder pins an exact BuildKit version in its project file (sf-mod-build 0.1.1's template pins 0.4.0, which is tested with Mutagen 0.54.4; the newest is BuildKit 0.4.2). Don't change the pins unless the user asks. Without .NET or the Creation Kit, say what is missing (from `doctor`) and stop here.
+   The template's builder pins an exact BuildKit version in its project file (sf-mod-build 0.4.1's template pins 0.4.2, which is tested with Mutagen 0.54.4; the newest is BuildKit 0.5.0, which a builder moves to only when the user asks). Don't change the pins unless the user asks. Without .NET or the Creation Kit, say what is missing (from `doctor`) and stop here.
 
 5. **Start git and the notes:**
    - `git init`, then a `.gitignore` that leaves out `dist/`, `.build/`, `creations-out/`, `*.zip`, `*.ba2`, `*.pex` and any copy of game files.

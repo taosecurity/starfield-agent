@@ -9,7 +9,7 @@ A game update can stop SFSE plugins from loading and can change records, quest s
 
 ## Before an update (once per mod, and again after each rebuild)
 
-1. **Take a drift baseline** for each of your own mods, with sf-patch-day 0.1.3, while the old game version is still installed:
+1. **Take a drift baseline** for each of your own mods, with sf-patch-day 0.2.2, while the old game version is still installed:
 
    ```
    python -I sf-patch-day.py drift init "<MyMod.esm>" -o mods.json
@@ -38,7 +38,7 @@ A game update can stop SFSE plugins from loading and can change records, quest s
 
    Exit 0: nothing the mod uses changed. Exit 1: something changed but the mod doesn't use it, or there is a name to check by hand. Exit 2: rebuild (records, stages or functions the mod relies on changed). Add `--plugin-dir "<folder>"` when masters live in a mod manager's folder. With no baseline, say so, and take one now for the next update.
 
-4. **The load order**, with sf-load-order 0.1.1 (it finds Steam and Game Pass by itself):
+4. **The load order**, with sf-load-order 0.2.2 (it finds Steam and Game Pass by itself):
 
    ```
    .\sf-load-order.cmd --depth light

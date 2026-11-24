@@ -234,6 +234,10 @@ wildcards, and refuses commands that name a guarded folder and run code inside t
 in the next, or a script file the command runs) still isn't seen. Edits through the file tools have no such gap. When
 the game-code guard can't list the files a `git` command would send, it asks you instead of letting it through.
 
+## Privacy
+
+The plugin itself collects nothing and makes no network calls, but Claude Code sends what the assistant reads to Anthropic. See [PRIVACY.md](PRIVACY.md) for what the plugin reads and writes and what goes to Claude.
+
 ## Found a mistake?
 
 Open an issue: https://github.com/taosecurity/starfield-agent/issues
